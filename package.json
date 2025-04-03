@@ -1,0 +1,25 @@
+{
+  "name": "horizon-server",
+  "version": "1.0.0",
+  "description": "This is a server project for horizon crypto web application",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "author": "Chidiebere Nwabekeyi",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.13.1",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.9"
+  }
+}
