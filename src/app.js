@@ -18,9 +18,6 @@ const authorizationMiddleware = require("./middlewares/authorizationMiddleware")
 
 const app = express();
 
-// Mount API routes
-app.use("/api", apiRoutes); // Add this before authorizationMiddleware
-
 // Rate Limiting
 app.use(limiter);
 
