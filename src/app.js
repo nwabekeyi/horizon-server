@@ -1,10 +1,16 @@
 const express = require("express");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
 const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./configs/swaggerConfig"); // Import the spec
+const limiter = require("./middlewares/rateLimiter");
+const connectDB = require("./configs/DBconns");
+
+// Connect to DB
+connectDB();
 
 const allowedOriginAndMethodMiddleware = require("./middlewares/allowedOriginAndMethodMiddleware");
 const errorMiddleware = require("./middlewares/errorMiddleware");
@@ -12,12 +18,10 @@ const authorizationMiddleware = require("./middlewares/authorizationMiddleware")
 
 const app = express();
 
+// Mount API routes
+app.use("/api", apiRoutes); // Add this before authorizationMiddleware
+
 // Rate Limiting
-const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-});
 app.use(limiter);
 
 // Security Middleware
@@ -35,10 +39,15 @@ logStream.on("error", (err) => console.error("Failed to write to access.log:", e
 app.use(morgan("combined", { stream: logStream }));
 app.use(morgan("dev"));
 
-// Wildcard Route
-app.get("/user", (req, res) => {
+// Swagger Setup
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Public Routes
+app.get("/", (req, res) => {
   res.send("Welcome to The Horizon - Your journey starts here!");
 });
+
+// Authorization Middleware (after public routes)
 app.use(authorizationMiddleware);
 
 // Error Handling Middleware
