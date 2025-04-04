@@ -1,8 +1,13 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    lastName: {
       type: String,
       required: true,
       trim: true,
@@ -15,7 +20,7 @@ const userSchema = new mongoose.Schema(
       validate: {
         validator: (value) => {
           const regex = /^\S+@\S+\.\S+$/;
-          return regex.test(value); // Basic email format validation
+          return regex.test(value);
         },
         message: "Please provide a valid email address.",
       },
@@ -23,12 +28,12 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 6, // Minimum password length
+      minlength: 8,
     },
     role: {
       type: String,
-      enum: ["user", "admin", "instructor", "superadmin"], // Defining allowed roles
-      default: "user", // Default role for new users
+      enum: ['user', 'admin'],
+      default: 'user',
     },
     dateJoined: {
       type: Date,
@@ -36,11 +41,10 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt timestamps
+    timestamps: true,
   }
 );
 
-// Create and export the model
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;
