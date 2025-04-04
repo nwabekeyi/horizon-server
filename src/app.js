@@ -5,16 +5,16 @@ const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
 const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./configs/swaggerConfig"); // Import the spec
+const swaggerSpec = require("./configs/swaggerConfig");
 const limiter = require("./middlewares/rateLimiter");
 const connectDB = require("./configs/DBconns");
-
+const userRoutes = require('./routes/userRoutes');
+const authController = require('./routes/authRoute')
 // Connect to DB
 connectDB();
 
 const allowedOriginAndMethodMiddleware = require("./middlewares/allowedOriginAndMethodMiddleware");
 const errorMiddleware = require("./middlewares/errorMiddleware");
-const authorizationMiddleware = require("./middlewares/authorizationMiddleware");
 
 const app = express();
 
@@ -23,8 +23,11 @@ app.use(limiter);
 
 // Security Middleware
 app.use(helmet());
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
+// Body parsing middleware (using Express built-ins)
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
 app.use(hpp());
 
 // Custom Middleware
@@ -44,8 +47,9 @@ app.get("/", (req, res) => {
   res.send("Welcome to The Horizon - Your journey starts here!");
 });
 
-// Authorization Middleware (after public routes)
-app.use(authorizationMiddleware);
+// API Routes
+app.use(userRoutes);
+app.use(authController);
 
 // Error Handling Middleware
 app.use(errorMiddleware);

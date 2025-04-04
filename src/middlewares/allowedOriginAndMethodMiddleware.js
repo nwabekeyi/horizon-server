@@ -1,6 +1,6 @@
 // allowedOriginAndMethodMiddleware.js
 
-const allowedOrigins = ['https://yourdomain.com', 'http://localhost:3000']; // Add localhost for local development
+const allowedOrigins = ['https://yourdomain.com', 'http://localhost:5000']; // Add localhost for local development
 const allowedMethods = ['GET', 'POST', 'PUT', 'DELETE']; // Specify allowed HTTP methods
 
 const allowedOriginAndMethodMiddleware = (req, res, next) => {
