@@ -3,6 +3,7 @@ const { User } = require('../models/userModel');
 const RegistrationPin = require('../models/registrationPinModel');
 const { sendEmail } = require('../configs/emailConfig');
 const { signJwt, verifyJwt } = require('../utils/JWTconfig');
+const {clientUrl} = require('../configs/envConfig')
 
 // Generate a random 4-digit PIN
 const generatePin = () => {
@@ -154,7 +155,7 @@ const sendPasswordResetLink = async (req, res) => {
     const token = generatePasswordResetToken(user._id);
 
     // Send password reset email with the link
-    const resetLink = `https://yourapp.com/reset-password?token=${token}`;
+    const resetLink = `${clientUrl}/reset-password?token=${token}`;
 
     await sendEmail({
       to: email,
