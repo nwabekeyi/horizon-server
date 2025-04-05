@@ -154,7 +154,7 @@ const sendPasswordResetLink = async (req, res) => {
     const token = generatePasswordResetToken(user._id);
 
     // Send password reset email with the link
-    const resetLink = `http://localhost:5000/authentication/reset-password?token=${token}`;
+    const resetLink = `http://localhost:3000/authentication/reset-password?token=${token}`;
 
     await sendEmail({
       to: email,
