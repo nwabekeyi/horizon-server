@@ -14,5 +14,6 @@ module.exports = {
   emailPass: process.env.SMTP_PASS,
   emailFrom: process.env.SMTP_FROM,
   nodeEnv: process.env.NODE_ENV,
-  prodUrl: process.env.PROD_URL
+  prodUrl: process.env.PROD_URL,
+  clientUrl: process.env.CLIENT_URL
 };
