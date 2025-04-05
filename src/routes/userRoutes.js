@@ -1,26 +1,18 @@
 const express = require('express');
 const authorize = require('../middlewares/authorizationMiddleware');
-const {
-  createUser,
-  updateUser,
-  deleteUser,
-  getUsers,
-  getUser,
-} = require('../controllers/usersController');
+const { createUser, updateUser, deleteUser, getUsers, getUser } = require('../controllers/usersController');
 const { apiVersion } = require('../utils/constants');
 
 const router = express.Router();
 
-// Log apiVersion for debugging
 console.log('User Routes - API Version:', apiVersion);
 
-// Public route to create a user
 /**
  * @swagger
  * /api/v1/users:
  *   post:
  *     summary: Create a new user
- *     description: This endpoint allows you to create a new user with email, password, and role.
+ *     description: Registers a new user after verifying the registration PIN sent to their email.
  *     tags:
  *       - Users
  *     requestBody:
@@ -34,6 +26,7 @@ console.log('User Routes - API Version:', apiVersion);
  *               - lastName
  *               - email
  *               - password
+ *               - pin
  *             properties:
  *               firstName:
  *                 type: string
@@ -47,6 +40,9 @@ console.log('User Routes - API Version:', apiVersion);
  *               password:
  *                 type: string
  *                 example: password123
+ *               pin:
+ *                 type: string
+ *                 example: 1234
  *               role:
  *                 type: string
  *                 enum: [user, admin, instructor, superadmin]
@@ -62,30 +58,17 @@ console.log('User Routes - API Version:', apiVersion);
  *                 user:
  *                   type: object
  *                   properties:
- *                     id:
- *                       type: string
- *                     firstName:
- *                       type: string
- *                     lastName:
- *                       type: string
- *                     email:
- *                       type: string
- *                     role:
- *                       type: string
- *                     dateJoined:
- *                       type: string
- *                       format: date-time
- *                 message:
- *                   type: string
+ *                     id: { type: string }
+ *                     firstName: { type: string }
+ *                     lastName: { type: string }
+ *                     email: { type: string }
+ *                     role: { type: string }
+ *                     dateJoined: { type: string, format: date-time }
+ *                 message: { type: string }
  *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
+ *         description: Validation error or invalid PIN
+ *       409:
+ *         description: Email already in use
  *       500:
  *         description: Internal server error
  */
@@ -195,7 +178,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  * /api/v1/users/{id}:
  *   put:
  *     summary: Update a user
- *     description: Admin or the user themselves can update their user data by ID.
+ *     description: Allows an admin or the user themselves to update their user information.
  *     tags:
  *       - Users
  *     parameters:
@@ -204,7 +187,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: User's unique ID
+ *         description: The user's unique ID
  *     requestBody:
  *       required: true
  *       content:
@@ -214,16 +197,32 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *             properties:
  *               firstName:
  *                 type: string
- *                 example: horizon
+ *                 example: Horizon
  *               lastName:
  *                 type: string
- *                 example: user
+ *                 example: User
  *               email:
  *                 type: string
  *                 example: horizon.user@gmail.com
+ *               password:
+ *                 type: string
+ *                 example: newSecurePassword123
  *               role:
  *                 type: string
  *                 enum: [user, admin, instructor, superadmin]
+ *               amountPaid:
+ *                 type: number
+ *                 example: 150
+ *               phone:
+ *                 type: string
+ *                 example: "+1234567890"
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 example: 1990-01-01
+ *               address:
+ *                 type: string
+ *                 example: "123 Tech Street"
  *     responses:
  *       200:
  *         description: User successfully updated
@@ -245,6 +244,17 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *                       type: string
  *                     role:
  *                       type: string
+ *                     amountPaid:
+ *                       type: number
+ *                     phone:
+ *                       type: string
+ *                     dateOfBirth:
+ *                       type: string
+ *                       format: date
+ *                     address:
+ *                       type: string
+ *                 message:
+ *                   type: string
  *       400:
  *         description: Validation error
  *       401:
@@ -254,6 +264,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
+
 router.put(`${apiVersion}/users/:id`, (req, res, next) => {
   console.log(`PUT ${apiVersion}/users/${req.params.id} called`);
   console.log('Request Body:', req.body);
