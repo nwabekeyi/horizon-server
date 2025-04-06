@@ -17,8 +17,10 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 8 },
     phone: { type: String },
     role: { type: String, enum: ['user'], default: 'user' },
+    
+    status: { type: String, enum: ['verified', 'unverified', 'suspended'], default: 'unverified' }, // 👈 Added here
 
-    profilePicture: { type: String }, // 👈 Added here
+    profilePicture: { type: String },
 
     kyc: {
       status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
@@ -37,7 +39,7 @@ const userSchema = new mongoose.Schema(
       }
     ],
 
-    transactions: [String], // Only txId as string
+    transactions: [String],
 
     twoFA: {
       enabled: { type: Boolean, default: false },
@@ -69,7 +71,9 @@ const adminSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 8 },
     role: { type: String, enum: ['admin', 'superadmin'], default: 'admin' },
 
-    profilePicture: { type: String }, // 👈 Added here
+    status: { type: String, enum: ['verified', 'unverified', 'suspended'], default: 'unverified' }, // 👈 Added here
+
+    profilePicture: { type: String },
 
     permissions: {
       canManageUsers: { type: Boolean, default: true },

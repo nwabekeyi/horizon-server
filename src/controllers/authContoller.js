@@ -79,7 +79,7 @@ const loginUser = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).lean(); // use lean() for plain JS object
     if (!user) {
       return res.status(401).json({ 
         success: false, 
@@ -95,6 +95,8 @@ const loginUser = async (req, res) => {
       });
     }
 
+    const { password: _, ...userWithoutPassword } = user; // remove password
+
     const payload = {
       id: user._id,
       email: user.email,
@@ -106,13 +108,7 @@ const loginUser = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-      },
+      user: userWithoutPassword, // full user object minus password
     });
   } catch (error) {
     console.error('Error during login:', error);
@@ -123,6 +119,7 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
 
 // Generate password reset token (valid for 1 hour)
 const generatePasswordResetToken = (userId) => {
