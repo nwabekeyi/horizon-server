@@ -178,7 +178,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  * /api/v1/users/{id}:
  *   put:
  *     summary: Update a user
- *     description: Allows an admin or the user themselves to update their user information.
+ *     description: Allows an admin or the user themselves to update their user information, including uploading a profile picture. The request should be multipart/form-data, containing fields such as `firstName`, `lastName`, `email`, `password`, etc., as well as an optional profile picture.
  *     tags:
  *       - Users
  *     parameters:
@@ -191,7 +191,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -204,25 +204,45 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *               email:
  *                 type: string
  *                 example: horizon.user@gmail.com
- *               password:
- *                 type: string
- *                 example: newSecurePassword123
- *               role:
- *                 type: string
- *                 enum: [user, admin, instructor, superadmin]
- *               amountPaid:
- *                 type: number
- *                 example: 150
  *               phone:
  *                 type: string
  *                 example: "+1234567890"
- *               dateOfBirth:
+ *               role:
  *                 type: string
- *                 format: date
- *                 example: 1990-01-01
- *               address:
+ *                 enum: [user, admin, instructor, superadmin]
+ *               profilePicture:
  *                 type: string
- *                 example: "123 Tech Street"
+ *                 format: binary
+ *                 description: Profile picture file upload (required for updating profile)
+ *               wallets:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   example: "wallet123"
+ *               twoFA:
+ *                 type: object
+ *                 properties:
+ *                   enabled:
+ *                     type: boolean
+ *                     example: true
+ *                   method:
+ *                     type: string
+ *                     enum: [email, sms]
+ *                     example: email
+ *               referralCode:
+ *                 type: string
+ *                 example: "REFERRAL123"
+ *               referredBy:
+ *                 type: string
+ *                 example: "REFERRER123"
+ *               isBanned:
+ *                 type: boolean
+ *                 example: false
+ *               transactions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   example: "transaction123"
  *     responses:
  *       200:
  *         description: User successfully updated
@@ -244,32 +264,24 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *                       type: string
  *                     role:
  *                       type: string
- *                     amountPaid:
- *                       type: number
- *                     phone:
+ *                     profilePicture:
  *                       type: string
- *                     dateOfBirth:
- *                       type: string
- *                       format: date
- *                     address:
- *                       type: string
+ *                       description: URL or path to the uploaded profile picture
  *                 message:
  *                   type: string
  *       400:
- *         description: Validation error
- *       401:
- *         description: Unauthorized
+ *         description: Validation error (e.g., missing fields, invalid data format)
  *       404:
- *         description: User not found
+ *         description: User not found (The user ID does not exist)
  *       500:
- *         description: Internal server error
+ *         description: Internal server error (Unexpected server issue)
  */
-
 router.put(`${apiVersion}/users/:id`, (req, res, next) => {
   console.log(`PUT ${apiVersion}/users/${req.params.id} called`);
   console.log('Request Body:', req.body);
   updateUser(req, res, next);
 });
+
 
 // Delete a user (Admin only)
 /**
