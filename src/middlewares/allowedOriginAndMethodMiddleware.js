@@ -1,4 +1,4 @@
-const allowedOrigins = ['https://yourdomain.com', 'http://localhost:5000', 'https://horizon-kohl-beta.vercel.app', 'http://localhost:3000']; // Add localhost for local development
+const allowedOrigins = ['https://yourdomain.com', 'http://localhost:5000', 'https://horizon-amber-xi.vercel.app/', 'http://localhost:3000']; // Add localhost for local development
 const allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']; // Specify allowed HTTP methods
 
 const allowedOriginAndMethodMiddleware = (req, res, next) => {

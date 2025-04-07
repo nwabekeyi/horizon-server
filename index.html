@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reasoning AI Chat</title>
+</head>
+<body>
+  <h2>Ask the AI Anything</h2>
+  <input type="text" id="message" placeholder="Type your message..." />
+  <button onclick="askAI()">Submit</button>
+  <p><strong>Response:</strong></p>
+  <pre id="response">...</pre>
+
+  <script>
+    async function askAI() {
+      const message = document.getElementById("message").value;
+      const responseBox = document.getElementById("response");
+      responseBox.textContent = "Loading...";
+
+      try {
+        // Step 1: POST request to initiate the chat and get event_id
+        const postRes = await fetch("https://llmhacker-deepseek-r1-distill-llama-8b.hf.space/call/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: [message, 0, 128]
+          })
+        });
+
+        const postData = await postRes.json();
+        const eventId = postData?.event_id;
+
+        if (!eventId) {
+          throw new Error("No event ID returned.");
+        }
+
+        // Step 2: Create an EventSource to listen for SSE updates
+        const eventSource = new EventSource(`https://llmhacker-deepseek-r1-distill-llama-8b.hf.space/call/chat/${eventId}`);
+
+        eventSource.onmessage = function(event) {
+          // Handle the SSE data
+          const result = event.data;
+          responseBox.textContent = result;
+
+          // Close the connection once the response is received
+          if (result) {
+            eventSource.close();
+          }
+        };
+
+        eventSource.onerror = function(error) {
+          responseBox.textContent = "Error occurred during SSE connection.";
+          console.error("SSE Error:", error);
+          
+          // Add more details for debugging
+          if (error instanceof Event) {
+            console.error("SSE Event:", error);
+            if (error.target) {
+              console.error("SSE Error Target:", error.target);
+            }
+          }
+
+          eventSource.close();
+        };
+
+      } catch (error) {
+        responseBox.textContent = "Error: " + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
