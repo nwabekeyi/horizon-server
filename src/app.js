@@ -10,7 +10,10 @@ const limiter = require("./middlewares/rateLimiter");
 const connectDB = require("./configs/DBconns");
 const userRoutes = require('./routes/userRoutes');
 const authController = require('./routes/authRoute')
-const verification = require('./routes/verification')
+const verification = require('./routes/verification');
+const transaction = require('./routes/transactionsRoute');
+const company = require('./routes/companyRoute');
+
 // Connect to DB
 connectDB();
 
@@ -52,6 +55,8 @@ app.get("/", (req, res) => {
 app.use(userRoutes);
 app.use(authController);
 app.use(verification);
+app.use(transaction);
+app.use(company);
 
 // Error Handling Middleware
 app.use(errorMiddleware);
