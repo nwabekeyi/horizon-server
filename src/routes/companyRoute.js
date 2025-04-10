@@ -6,6 +6,8 @@ const {
   updateCompany,
   deleteCompany,
   subscribeToCompany,
+  getCompaniesByIndustry,
+  getAllIndustries
 } = require('../controllers/companyController');
 const { apiVersion } = require('../utils/constants');
 const { check } = require('express-validator');
@@ -189,7 +191,6 @@ router.delete(`${apiVersion}/companies/:id`, (req, res, next) => {
   deleteCompany(req, res, next);
 });
 
-
 /**
  * @swagger
  * /api/v1/companies/subscribe:
@@ -228,7 +229,51 @@ router.delete(`${apiVersion}/companies/:id`, (req, res, next) => {
 router.post(`${apiVersion}/companies/subscribe`, (req, res, next) => {
     console.log(`POST ${apiVersion}/companies/subscribe called`);
     subscribeToCompany(req, res, next);
-  });
-  
+});
+
+/**
+ * @swagger
+ * /api/v1/industries:
+ *   get:
+ *     summary: Get all unique industries from companies
+ *     tags:
+ *       - Companies
+ *     responses:
+ *       200:
+ *         description: List of unique industries
+ *       500:
+ *         description: Internal server error
+ */
+router.get(`${apiVersion}/industries`, (req, res, next) => {
+  console.log(`GET ${apiVersion}/companies/industries called`);
+  getAllIndustries(req, res, next);
+});
+
+/**
+ * @swagger
+ * /api/v1/companies/industry/{industry}:
+ *   get:
+ *     summary: Get companies by a specific industry
+ *     tags:
+ *       - Companies
+ *     parameters:
+ *       - in: path
+ *         name: industry
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Industry name
+ *     responses:
+ *       200:
+ *         description: List of companies in the specified industry
+ *       404:
+ *         description: No companies found for the given industry
+ *       500:
+ *         description: Internal server error
+ */
+router.get(`${apiVersion}/companies/industry/:industry`, (req, res, next) => {
+  console.log(`GET ${apiVersion}/companies/industry/:industy called`);
+  getCompaniesByIndustry(req, res, next);
+});
 
 module.exports = router;
