@@ -251,7 +251,7 @@ router.get(`${apiVersion}/industries`, (req, res, next) => {
 
 /**
  * @swagger
- * /api/v1/companies/industry/{industry}:
+ * /api/v1/companies/industries/{industry}:
  *   get:
  *     summary: Get companies by a specific industry
  *     tags:
@@ -271,7 +271,7 @@ router.get(`${apiVersion}/industries`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get(`${apiVersion}/companies/industry/:industry`, (req, res, next) => {
+router.get(`${apiVersion}/companies/industries/:industry`, (req, res, next) => {
   console.log(`GET ${apiVersion}/companies/industry/:industy called`);
   getCompaniesByIndustry(req, res, next);
 });
