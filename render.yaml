@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: 247AT
+    runtime: node
+    runtimeVersion: 18
+    buildCommand: npm install
+    startCommand: node src/server.js
