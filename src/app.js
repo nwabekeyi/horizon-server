@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const helmet = require("helmet");
 const hpp = require("hpp");
@@ -24,37 +25,11 @@ const app = express();
 // Rate Limiting
 app.use(limiter);
 
-// Security Middleware with custom CSP
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'sha256-QEvPYBVC4/elBmqZMNgsmK/t4fbYlYlKFHMNgtbQhug='",
-          "'sha256-s3awwLVKIlkpRfkaaj52BR2uN8hCzlzb6MchVuAUdaM='",
-          "'sha256-aX5nyihpLRVEXOfytKLTyKNbLUXABeXuSnb8+Y6MbxE='", // New hash
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://fonts.googleapis.com", // Allow Google Fonts
-        ],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"], // Allow font files
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
-  })
-);
-
-// Body parsing middleware
+// Body parsing middleware (before CORS for proper parsing)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+// HPP middleware
 app.use(hpp());
 
 // Session Middleware
@@ -66,8 +41,49 @@ app.use(
   })
 );
 
-// Custom Middleware
+// CORS Middleware (before helmet to set headers first)
 app.use(allowedOriginAndMethodMiddleware);
+
+// Security Middleware with updated CSP
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'sha256-QEvPYBVC4/elBmqZMNgsmK/t4fbYlYlKFHMNgtbQhug='",
+          "'sha256-s3awwLVKIlkpRfkaaj52BR2uN8hCzlzb6MchVuAUdaM='",
+          "'sha256-aX5nyihpLRVEXOfytKLTyKNbLUXABeXuSnb8+Y6MbxE='",
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: [
+          "'self'",
+          "https://horizon-amber-xi.vercel.app", // Allow frontend
+          "http://localhost:3000", // Allow dev
+        ],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
+
+// Log response headers for debugging
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function (body) {
+    console.log(`Response Headers for ${req.path}:`, res.getHeaders());
+    return originalSend.call(this, body);
+  };
+  next();
+});
 
 // Logging Middleware
 const logStream = fs.createWriteStream(path.join(__dirname, "access.log"), { flags: "a" });

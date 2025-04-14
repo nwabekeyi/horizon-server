@@ -15,14 +15,13 @@ const createTransaction = async (req, res) => {
     }
 
     try {
-      const { 
-        companyName, 
-        userId, 
-        status, 
-        amount, 
-        currencyType, 
-        cryptoCurrency, 
-        transactionDetails 
+      const {
+        companyName,
+        userId,
+        amount,
+        currencyType,
+        cryptoCurrency,
+        transactionDetails
       } = req.body;
 
       // Validate required fields
@@ -54,7 +53,6 @@ const createTransaction = async (req, res) => {
         companyName,
         transactionId,
         userId,
-        status: status || 'pending',
         amount,
         currencyType,
         cryptoCurrency: currencyType === 'crypto' ? cryptoCurrency : undefined,
