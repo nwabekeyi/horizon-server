@@ -1,5 +1,12 @@
 const express = require('express');
-const { createTransaction, getUserTransactions, getTransactions, updateTransaction, deleteTransaction } = require('../controllers/transantionsController');
+const {
+  createTransaction,
+  getUserTransactions,
+  getTransactions,
+  updateTransaction,
+  deleteTransaction,
+  processPayment,
+} = require('../controllers/transantionsController');
 const { apiVersion } = require('../utils/constants');
 
 const router = express.Router();
@@ -11,13 +18,13 @@ console.log('Transaction Routes - API Version:', apiVersion);
  * /api/v1/transactions:
  *   post:
  *     summary: Create a new transaction
- *     description: Creates a new transaction record for a user.
+ *     description: Creates a new transaction record for a user with a proof of payment upload.
  *     tags:
  *       - Transactions
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -25,6 +32,7 @@ console.log('Transaction Routes - API Version:', apiVersion);
  *               - userId
  *               - amount
  *               - currencyType
+ *               - proof
  *             properties:
  *               companyName:
  *                 type: string
@@ -48,17 +56,13 @@ console.log('Transaction Routes - API Version:', apiVersion);
  *                 enum: [usdt, btc, eth]
  *                 example: "usdt"
  *               transactionDetails:
- *                 type: object
- *                 additionalProperties:
- *                   type: string
- *               createdAt:
  *                 type: string
- *                 format: date-time
- *                 example: "2025-04-08T12:00:00Z"
- *               updatedAt:
+ *                 description: JSON string of additional transaction details
+ *                 example: "{\"bankName\": \"Bank A\"}"
+ *               proof:
  *                 type: string
- *                 format: date-time
- *                 example: "2025-04-08T12:00:00Z"
+ *                 format: binary
+ *                 description: Proof of payment file (JPEG, PNG, WEBP)
  *     responses:
  *       201:
  *         description: Transaction successfully created
@@ -67,29 +71,51 @@ console.log('Transaction Routes - API Version:', apiVersion);
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 transaction:
  *                   type: object
  *                   properties:
  *                     companyName:
  *                       type: string
+ *                       example: "TechCorp"
  *                     transactionId:
  *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
  *                     userId:
  *                       type: string
+ *                       example: "user123"
  *                     status:
  *                       type: string
+ *                       example: "pending"
  *                     amount:
  *                       type: number
+ *                       example: 100
  *                     currencyType:
  *                       type: string
+ *                       example: "fiat"
  *                     cryptoCurrency:
  *                       type: string
+ *                       example: null
  *                     transactionDetails:
  *                       type: object
  *                       additionalProperties:
  *                         type: string
+ *                       example: {"bankName": "Bank A"}
+ *                     proofUrl:
+ *                       type: string
+ *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-08T12:00:00Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-08T12:00:00Z"
  *       400:
- *         description: Validation error (e.g., missing fields, invalid data)
+ *         description: Validation error (e.g., missing fields, invalid data, no proof file)
  *       500:
  *         description: Internal server error
  */
@@ -122,6 +148,9 @@ router.post(`${apiVersion}/transactions`, (req, res, next) => {
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 transactions:
  *                   type: array
  *                   items:
@@ -129,27 +158,41 @@ router.post(`${apiVersion}/transactions`, (req, res, next) => {
  *                     properties:
  *                       companyName:
  *                         type: string
+ *                         example: "TechCorp"
  *                       transactionId:
  *                         type: string
+ *                         example: "550e8400-e29b-41d4-a716-446655440000"
  *                       userId:
  *                         type: string
+ *                         example: "user123"
  *                       status:
  *                         type: string
+ *                         example: "pending"
  *                       amount:
  *                         type: number
+ *                         example: 100
  *                       currencyType:
  *                         type: string
+ *                         example: "fiat"
  *                       cryptoCurrency:
  *                         type: string
+ *                         example: null
  *                       transactionDetails:
  *                         type: object
  *                         additionalProperties:
  *                           type: string
+ *                         example: {"bankName": "Bank A"}
+ *                       proofUrl:
+ *                         type: string
+ *                         example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
  *                       createdAt:
  *                         type: string
  *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
  *       404:
- *         description: User not found or no transactions found for the user
+ *         description: No transactions found for the user
  *       500:
  *         description: Internal server error
  */
@@ -174,6 +217,9 @@ router.get(`${apiVersion}/transactions/user/:userId`, (req, res, next) => {
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 transactions:
  *                   type: array
  *                   items:
@@ -181,23 +227,37 @@ router.get(`${apiVersion}/transactions/user/:userId`, (req, res, next) => {
  *                     properties:
  *                       companyName:
  *                         type: string
+ *                         example: "TechCorp"
  *                       transactionId:
  *                         type: string
+ *                         example: "550e8400-e29b-41d4-a716-446655440000"
  *                       userId:
  *                         type: string
+ *                         example: "user123"
  *                       status:
  *                         type: string
+ *                         example: "pending"
  *                       amount:
  *                         type: number
+ *                         example: 100
  *                       currencyType:
  *                         type: string
+ *                         example: "fiat"
  *                       cryptoCurrency:
  *                         type: string
+ *                         example: null
  *                       transactionDetails:
  *                         type: object
  *                         additionalProperties:
  *                           type: string
+ *                         example: {"bankName": "Bank A"}
+ *                       proofUrl:
+ *                         type: string
+ *                         example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
  *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
  *                         type: string
  *                         format: date-time
  *       401:
@@ -215,7 +275,114 @@ router.get(`${apiVersion}/transactions`, (req, res, next) => {
  * /api/v1/transactions/{id}:
  *   put:
  *     summary: Update a transaction
- *     description: Updates the details of a specific transaction by its ID.
+ *     description: Updates the details of a specific transaction by its ID, with an optional proof of payment upload.
+ *     tags:
+ *       - Transactions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Transaction's unique ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, completed, failed]
+ *                 example: "completed"
+ *               amount:
+ *                 type: number
+ *                 example: 150
+ *               currencyType:
+ *                 type: string
+ *                 enum: [fiat, crypto]
+ *                 example: "crypto"
+ *               cryptoCurrency:
+ *                 type: string
+ *                 enum: [usdt, btc, eth]
+ *                 example: "btc"
+ *               transactionDetails:
+ *                 type: string
+ *                 description: JSON string of additional transaction details
+ *                 example: "{\"bankName\": \"Bank B\"}"
+ *               proof:
+ *                 type: string
+ *                 format: binary
+ *                 description: New proof of payment file (JPEG, PNG, WEBP)
+ *     responses:
+ *       200:
+ *         description: Transaction successfully updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 transaction:
+ *                   type: object
+ *                   properties:
+ *                     companyName:
+ *                       type: string
+ *                       example: "TechCorp"
+ *                     transactionId:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     userId:
+ *                       type: string
+ *                       example: "user123"
+ *                     status:
+ *                       type: string
+ *                       example: "completed"
+ *                     amount:
+ *                       type: number
+ *                       example: 150
+ *                     currencyType:
+ *                       type: string
+ *                       example: "crypto"
+ *                     cryptoCurrency:
+ *                       type: string
+ *                       example: "btc"
+ *                     transactionDetails:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: string
+ *                       example: {"bankName": "Bank B"}
+ *                     proofUrl:
+ *                       type: string
+ *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/new-proof.jpg"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Validation error (e.g., invalid status)
+ *       404:
+ *         description: Transaction not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put(`${apiVersion}/transactions/:id`, (req, res, next) => {
+  console.log(`PUT ${apiVersion}/transactions/${req.params.id} called`);
+  console.log('Request Body:', req.body);
+  updateTransaction(req, res, next);
+});
+
+/**
+ * @swagger
+ * /api/v1/transactions/{id}/process:
+ *   post:
+ *     summary: Process a transaction payment
+ *     description: Updates the payment status of a transaction and optionally uploads a new proof of payment.
  *     tags:
  *       - Transactions
  *     parameters:
@@ -228,64 +395,80 @@ router.get(`${apiVersion}/transactions`, (req, res, next) => {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - paymentStatus
  *             properties:
- *               status:
+ *               paymentStatus:
  *                 type: string
- *                 enum: [pending, completed, failed]
+ *                 enum: [completed, failed]
  *                 example: "completed"
- *               amount:
- *                 type: number
- *               currencyType:
+ *               proof:
  *                 type: string
- *                 enum: [fiat, crypto]
- *                 example: "crypto"
- *               cryptoCurrency:
- *                 type: string
- *                 enum: [usdt, btc, eth]
- *                 example: "btc"
- *               transactionDetails:
- *                 type: object
- *                 additionalProperties:
- *                   type: string
+ *                 format: binary
+ *                 description: New proof of payment file (JPEG, PNG, WEBP)
  *     responses:
  *       200:
- *         description: Transaction successfully updated
+ *         description: Transaction payment processed successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 transaction:
  *                   type: object
  *                   properties:
  *                     companyName:
  *                       type: string
+ *                       example: "TechCorp"
  *                     transactionId:
  *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     userId:
+ *                       type: string
+ *                       example: "user123"
  *                     status:
  *                       type: string
+ *                       example: "completed"
  *                     amount:
  *                       type: number
+ *                       example: 100
  *                     currencyType:
  *                       type: string
+ *                       example: "fiat"
  *                     cryptoCurrency:
  *                       type: string
+ *                       example: null
  *                     transactionDetails:
  *                       type: object
  *                       additionalProperties:
  *                         type: string
+ *                       example: {"bankName": "Bank A"}
+ *                     proofUrl:
+ *                       type: string
+ *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Validation error (e.g., invalid payment status, non-pending transaction)
  *       404:
  *         description: Transaction not found
  *       500:
  *         description: Internal server error
  */
-router.put(`${apiVersion}/transactions/:id`, (req, res, next) => {
-  console.log(`PUT ${apiVersion}/transactions/${req.params.id} called`);
+router.post(`${apiVersion}/transactions/:id/process`, (req, res, next) => {
+  console.log(`POST ${apiVersion}/transactions/${req.params.id}/process called`);
   console.log('Request Body:', req.body);
-  updateTransaction(req, res, next);
+  processPayment(req, res, next);
 });
 
 /**
@@ -311,8 +494,12 @@ router.put(`${apiVersion}/transactions/:id`, (req, res, next) => {
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: "Transaction deleted successfully"
  *       404:
  *         description: Transaction not found
  *       500:

@@ -246,16 +246,6 @@ async function setupAdminJS(app) {
       next();
     });
 
-    // Add CORS support
-    const cors = require('cors');
-    app.use(cors({
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      credentials: true,
-      methods: ['GET', 'POST'],
-      allowedHeaders: ['Content-Type', 'Cookie'],
-    }));
-    console.log('CORS configured');
-
     // Mount AdminJS routes
     app.use('/admin', adminRouter);
     console.log('AdminJS routes mounted at /admin');
