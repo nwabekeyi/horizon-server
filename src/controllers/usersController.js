@@ -98,19 +98,26 @@ const updateUser = async (req, res) => {
       referredBy,
       isBanned,
       transactions,
+      address,
+      gender,
+      dateOfBirth
     } = req.body;
 
     try {
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
 
+      // Update user details if provided, otherwise retain existing
       user.firstName = firstName ?? user.firstName;
       user.lastName = lastName ?? user.lastName;
       user.email = email ?? user.email;
       user.phone = phone ?? user.phone;
       user.role = role ?? user.role;
+      user.address = address ?? user.address;
+      user.gender = gender ?? user.gender;
+      user.dateOfBirth = dateOfBirth ?? user.dateOfBirth;
 
-      // Upload profile picture
+      // Upload profile picture if provided
       if (req.file && req.file.path) {
         user.profilePicture = req.file.path;
       } else if (profilePicture) {
@@ -122,10 +129,12 @@ const updateUser = async (req, res) => {
       user.referredBy = referredBy ?? user.referredBy;
       user.isBanned = typeof isBanned === 'boolean' ? isBanned : user.isBanned;
 
+      // Update wallets if provided
       if (Array.isArray(wallets)) {
         user.wallets = wallets;
       }
 
+      // Update twoFA if provided
       if (twoFA) {
         user.twoFA = {
           ...user.twoFA,
@@ -133,6 +142,7 @@ const updateUser = async (req, res) => {
         };
       }
 
+      // Update transactions if provided
       if (Array.isArray(transactions)) {
         user.transactions = [...new Set([...user.transactions, ...transactions])];
       }
@@ -146,21 +156,6 @@ const updateUser = async (req, res) => {
       return res.status(500).json({ message: 'Server error', error: error.message });
     }
   });
-};
-
-// Delete user
-const deleteUser = async (req, res) => {
-  const userId = req.params.id;
-
-  try {
-    const user = await User.findByIdAndDelete(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.status(200).json({ message: 'User deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
 };
 
 // Get all users
@@ -188,4 +183,81 @@ const getUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, updateUser, deleteUser, getUsers, getUser };
+// Add account details
+const addAccountDetails = async (req, res) => {
+  const { userId } = req.params;
+  const { currency, accountDetails } = req.body;
+
+  if (!currency || !accountDetails) {
+    return res.status(400).json({ message: 'currency and accountDetails are required' });
+  }
+
+  if (!['fiat', 'crypto'].includes(currency)) {
+    return res.status(400).json({ message: 'Invalid currency type. Must be "fiat" or "crypto"' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const detail = { currency, accountDetails: {} };
+
+    if (currency === 'fiat') {
+      const { bankName, accountName, accountNumber } = accountDetails;
+      if (!bankName || !accountName || !accountNumber) {
+        return res.status(400).json({ message: 'bankName, accountName, and accountNumber are required for fiat' });
+      }
+
+      detail.accountDetails.bankName = bankName;
+      detail.accountDetails.accountName = accountName;
+      detail.accountDetails.accountNumber = accountNumber;
+    }
+
+    if (currency === 'crypto') {
+      const { address } = accountDetails;
+      if (!address) {
+        return res.status(400).json({ message: 'address is required for crypto' });
+      }
+
+      detail.accountDetails.address = address;
+    }
+
+    // Add new detail (append or update existing one with same currency)
+    const existingIndex = user.paymentDetails.findIndex(pd => pd.currency === currency);
+    if (existingIndex !== -1) {
+      user.paymentDetails[existingIndex] = detail; // overwrite existing
+    } else {
+      user.paymentDetails.push(detail); // append new
+    }
+
+    await user.save();
+    res.status(200).json({ message: 'Account details added/updated successfully', paymentDetails: user.paymentDetails });
+
+  } catch (error) {
+    console.error('Error adding account details:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+//delete user 
+// Delete a user by ID
+const deleteUser = async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const user = await User.findByIdAndDelete(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found or already deleted' });
+    }
+
+    res.status(200).json({ message: 'User deleted successfully', deletedUser: user });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Server error while deleting user', error: error.message });
+  }
+};
+
+
+
+module.exports = { createUser, updateUser, deleteUser, getUsers, getUser, addAccountDetails };

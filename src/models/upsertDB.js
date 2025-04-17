@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const { User, Admin } = require('./userModel'); // Adjust path to where userModel.js is located
-const { dbUrl } = require('../configs/envConfig'); // Adjust path to your envConfig file
+const Transaction = require('./transactionModel'); // Adjust path to transactionModel.js
+const { dbUrl } = require('../configs/envConfig'); // Adjust path to envConfig
 
 const MONGO_URI = dbUrl;
 
@@ -28,81 +28,38 @@ const disconnectDB = async () => {
   }
 };
 
-// Recursive function to generate default values for all fields, including nested ones
-const getDefaultValues = (schema) => {
-  const defaults = {};
-
-  Object.keys(schema.paths).forEach((path) => {
-    const pathObj = schema.paths[path];
-
-    // Skip _id and __v fields
-    if (path === '_id' || path === '__v') return;
-
-    // Handle simple fields with default values
-    if (pathObj.defaultValue !== undefined) {
-      // If defaultValue is a function, call it; otherwise, use it as-is
-      defaults[path] = typeof pathObj.defaultValue === 'function' ? pathObj.defaultValue() : pathObj.defaultValue;
-    }
-
-    // Handle nested objects (subdocuments)
-    if (pathObj.instance === 'Embedded') {
-      defaults[path] = defaults[path] || {};
-      Object.assign(defaults[path], getDefaultValues(pathObj.schema));
-    }
-
-    // Handle arrays
-    if (pathObj.instance === 'Array') {
-      if (pathObj.options.default !== undefined) {
-        defaults[path] = typeof pathObj.options.default === 'function' ? pathObj.options.default() : pathObj.options.default;
-      } else if (pathObj.schema) {
-        // If the array contains subdocuments, provide an empty array with default subdocument structure
-        defaults[path] = [getDefaultValues(pathObj.schema)];
-      } else {
-        defaults[path] = [];
-      }
-    }
-  });
-
-  return defaults;
-};
-
-// Function to update documents with missing fields
-const updateDocuments = async (Model) => {
-  try {
-    const defaultValues = getDefaultValues(Model.schema);
-    const fieldsToCheck = Object.keys(defaultValues).map((field) => ({ [field]: { $exists: false } }));
-
-    if (fieldsToCheck.length === 0) {
-      console.log(`No missing fields to update for ${Model.modelName}`);
-      return;
-    }
-
-    const result = await Model.updateMany(
-      { $or: fieldsToCheck },
-      { $set: defaultValues },
-      { multi: true }
-    );
-
-    console.log(`${Model.modelName} documents updated: ${result.modifiedCount}`);
-  } catch (error) {
-    console.error(`❌ Error updating ${Model.modelName} documents:`, error);
-  }
-};
-
-// Main migration function
-const migrateMissingFields = async () => {
+// Migrate transactionDetails from Map to String
+const migrateTransactionDetails = async () => {
   await connectDB();
 
-  console.log('Starting migration to add missing fields...');
-  
-  await updateDocuments(User);
-  await updateDocuments(Admin);
+  console.log('Starting migration to convert transactionDetails from Map to String...');
+
+  try {
+    const transactions = await Transaction.find({});
+    let updatedCount = 0;
+
+    for (const doc of transactions) {
+      if (doc.transactionDetails instanceof Map) {
+        const jsonString = JSON.stringify(Object.fromEntries(doc.transactionDetails));
+        await Transaction.updateOne(
+          { _id: doc._id },
+          { $set: { transactionDetails: jsonString } }
+        );
+        updatedCount++;
+      }
+    }
+
+    console.log(`Migration complete: ${updatedCount} Transaction documents updated`);
+  } catch (error) {
+    console.error('❌ Error during migration:', error);
+    process.exit(1);
+  }
 
   await disconnectDB();
 };
 
 // Run the migration
-migrateMissingFields().catch((error) => {
+migrateTransactionDetails().catch((error) => {
   console.error('❌ Migration failed:', error);
   process.exit(1);
 });
