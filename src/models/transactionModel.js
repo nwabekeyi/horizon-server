@@ -9,27 +9,28 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'completed', 'failed'],
       default: 'pending',
-      required: true
+      required: true,
     },
     amount: { type: Number, required: true },
     currencyType: {
       type: String,
       enum: ['fiat', 'crypto'],
-      required: true
+      required: true,
     },
     cryptoCurrency: {
       type: String,
       enum: ['usdt', 'btc', 'eth'],
-      required: function() { return this.currencyType === 'crypto'; },
+      required: function () {
+        return this.currencyType === 'crypto';
+      },
     },
     transactionDetails: {
-      type: Map,
-      of: String,
-      default: {},
+      type: String, // Store JSON string
+      default: '{}', // Default to empty JSON object
     },
     proofUrl: {
       type: String,
-      required: true
+      required: true,
     },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

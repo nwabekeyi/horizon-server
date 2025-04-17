@@ -1,12 +1,28 @@
 const { v4: uuidv4 } = require('uuid');
 const Transaction = require('../models/transactionModel');
+const { User } = require('../models/userModel'); // Adjust path as needed
 const createMulter = require('../configs/multerConfig'); // Adjust path as needed
+
+/**
+ * Middleware to check admin permissions
+ */
+const checkAdminPermissions = (req, res, next) => {
+  const admin = req.user; // Assumes user is attached by auth middleware
+  if (
+    !admin ||
+    !['admin', 'superadmin'].includes(admin.role) ||
+    !admin.permissions.canViewTransactions
+  ) {
+    return res.status(403).json({ success: false, message: 'Unauthorized: Insufficient permissions' });
+  }
+  next();
+};
 
 /**
  * Create a transaction with proof upload
  */
 const createTransaction = async (req, res) => {
-  const proofUpload = createMulter().single('proof'); // Use createMulter as in the example
+  const proofUpload = createMulter().single('proof');
 
   proofUpload(req, res, async (err) => {
     if (err) {
@@ -24,7 +40,6 @@ const createTransaction = async (req, res) => {
         transactionDetails
       } = req.body;
 
-      // Validate required fields
       if (!companyName) return res.status(400).json({ success: false, message: 'Company name is required' });
       if (!userId) return res.status(400).json({ success: false, message: 'User ID is required' });
       if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Amount must be a positive number' });
@@ -32,7 +47,6 @@ const createTransaction = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid currency type' });
       }
 
-      // Crypto-specific validations
       if (currencyType === 'crypto') {
         if (!cryptoCurrency) return res.status(400).json({ success: false, message: 'Crypto currency type is required' });
         if (!['usdt', 'btc', 'eth'].includes(cryptoCurrency)) {
@@ -43,10 +57,9 @@ const createTransaction = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Crypto currency should not be included for fiat' });
       }
 
-      // Check for proof of payment
       if (!req.file || !req.file.path) return res.status(400).json({ success: false, message: 'Proof of payment is required' });
 
-      const proofUrl = req.file.path; // Cloudinary URL from multer-storage-cloudinary
+      const proofUrl = req.file.path;
       const transactionId = uuidv4();
 
       const newTransaction = new Transaction({
@@ -73,7 +86,7 @@ const createTransaction = async (req, res) => {
  * Update a transaction with optional proof update
  */
 const updateTransaction = async (req, res) => {
-  const proofUpload = createMulter().single('proof'); // Use createMulter as in the example
+  const proofUpload = createMulter().single('proof');
 
   proofUpload(req, res, async (err) => {
     if (err) {
@@ -85,20 +98,16 @@ const updateTransaction = async (req, res) => {
       const { id } = req.params;
       const updates = req.body;
 
-      // Validate status if provided
       if (updates.status && !['pending', 'completed', 'failed'].includes(updates.status)) {
         return res.status(400).json({ success: false, message: 'Invalid status' });
       }
 
-      // Handle proof update if new file is provided
       if (req.file && req.file.path) {
-        updates.proofUrl = req.file.path; // New Cloudinary URL
+        updates.proofUrl = req.file.path;
       }
 
-      // Ensure updatedAt is always updated
       updates.updatedAt = Date.now();
 
-      // Parse transactionDetails if it's a string
       if (updates.transactionDetails && typeof updates.transactionDetails === 'string') {
         updates.transactionDetails = JSON.parse(updates.transactionDetails);
       }
@@ -125,7 +134,7 @@ const updateTransaction = async (req, res) => {
  * Process a payment and update transaction status
  */
 const processPayment = async (req, res) => {
-  const proofUpload = createMulter().single('proof'); // Use createMulter as in the example
+  const proofUpload = createMulter().single('proof');
 
   proofUpload(req, res, async (err) => {
     if (err) {
@@ -141,29 +150,24 @@ const processPayment = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid payment status' });
       }
 
-      // Find the transaction
       const transaction = await Transaction.findOne({ transactionId: id });
       if (!transaction) {
         return res.status(404).json({ success: false, message: 'Transaction not found' });
       }
 
-      // Prevent updating completed/failed transactions
       if (transaction.status !== 'pending') {
         return res.status(400).json({ success: false, message: 'Can only update pending transactions' });
       }
 
-      // Prepare updates
       const updates = {
         status: paymentStatus,
         updatedAt: Date.now()
       };
 
-      // Update proof if new file is provided
       if (req.file && req.file.path) {
-        updates.proofUrl = req.file.path; // New Cloudinary URL
+        updates.proofUrl = req.file.path;
       }
 
-      // Update transaction
       const updatedTransaction = await Transaction.findOneAndUpdate(
         { transactionId: id },
         { $set: updates },
@@ -230,11 +234,89 @@ const getUserTransactions = async (req, res) => {
   }
 };
 
+/**
+ * Approve a transaction
+ */
+const approveTransaction = [
+  // checkAdminPermissions,
+  async (req, res) => {
+    const { transactionId } = req.params;
+
+    try {
+      // Find transaction
+      const transaction = await Transaction.findOne({ transactionId });
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+      if (transaction.status !== 'pending') {
+        return res.status(400).json({ success: false, message: 'Transaction is not pending' });
+      }
+
+      // Update transaction status to completed
+      transaction.status = 'completed';
+      await transaction.save();
+
+      // Add to user's investments array
+      const user = await User.findById(transaction.userId);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      user.investments.push({
+        transactionId: transaction._id,
+        companyName: transaction.companyName,
+        amountInvested: transaction.amount,
+        currencyType: transaction.currencyType,
+        investmentDate: new Date(),
+        roi: 0,
+      });
+      await user.save();
+
+      res.status(200).json({ success: true, message: 'Transaction approved', transaction });
+    } catch (err) {
+      console.error('Error approving transaction:', err.message);
+      res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+    }
+  },
+];
+
+/**
+ * Decline a transaction
+ */
+const declineTransaction = [
+  // checkAdminPermissions,
+  async (req, res) => {
+    const { transactionId } = req.params;
+
+    try {
+      // Find transaction
+      const transaction = await Transaction.findOne({ transactionId });
+      if (!transaction) {
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+      if (transaction.status !== 'pending') {
+        return res.status(400).json({ success: false, message: 'Transaction is not pending' });
+      }
+
+      // Update transaction status to failed
+      transaction.status = 'failed';
+      await transaction.save();
+
+      res.status(200).json({ success: true, message: 'Transaction declined', transaction });
+    } catch (err) {
+      console.error('Error declining transaction:', err.message);
+      res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+    }
+  },
+];
+
 module.exports = {
   createTransaction,
   updateTransaction,
   processPayment,
   deleteTransaction,
   getTransactions,
-  getUserTransactions
+  getUserTransactions,
+  approveTransaction,
+  declineTransaction
 };

@@ -1,6 +1,6 @@
 const express = require('express');
 const authorize = require('../middlewares/authorizationMiddleware');
-const { createUser, updateUser, deleteUser, getUsers, getUser } = require('../controllers/usersController');
+const { createUser, addAccountDetails, updateUser, deleteUser, getUsers, getUser } = require('../controllers/usersController');
 const { apiVersion } = require('../utils/constants');
 
 const router = express.Router();
@@ -172,7 +172,8 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
   getUser(req, res, next);
 });
 
-// Update a user (Admin or the user themselves)
+
+//update user
 /**
  * @swagger
  * /api/v1/users/{id}:
@@ -213,7 +214,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *               profilePicture:
  *                 type: string
  *                 format: binary
- *                 description: Profile picture file upload (required for updating profile)
+ *                 description: Profile picture file upload (optional)
  *               wallets:
  *                 type: array
  *                 items:
@@ -266,7 +267,7 @@ router.get(`${apiVersion}/users/:id`, (req, res, next) => {
  *                       type: string
  *                     profilePicture:
  *                       type: string
- *                       description: URL or path to the uploaded profile picture
+ *                       description: URL or path to the uploaded profile picture (if updated)
  *                 message:
  *                   type: string
  *       400:
@@ -281,6 +282,7 @@ router.put(`${apiVersion}/users/:id`, (req, res, next) => {
   console.log('Request Body:', req.body);
   updateUser(req, res, next);
 });
+
 
 
 // Delete a user (Admin only)
@@ -322,5 +324,61 @@ router.delete(`${apiVersion}/users/:id`, (req, res, next) => {
   console.log(`DELETE ${apiVersion}/users/${req.params.id} called`);
   deleteUser(req, res, next);
 });
+
+
+/**
+ * @swagger
+ * /api/v1/users/{id}/accountdetails:
+ *   get:
+ *     summary: Get user account details
+ *     description: Returns detailed financial account info for the specified user.
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the user to retrieve account details for
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Account details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 account:
+ *                   type: object
+ *                   properties:
+ *                     fiat:
+ *                       type: object
+ *                       properties:
+ *                         balance:
+ *                           type: number
+ *                         currency:
+ *                           type: string
+ *                     crypto:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           coin:
+ *                             type: string
+ *                           walletAddress:
+ *                             type: string
+ *                           balance:
+ *                             type: number
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get(`${apiVersion}/users/:id/accountdetails`, (req, res, next) => {
+  console.log(`GET ${apiVersion}/users/${req.params.id}/accountdetails called`);
+  getUserAccountDetails(req, res, next);
+});
+
 
 module.exports = router;
