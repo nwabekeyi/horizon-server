@@ -42,20 +42,28 @@ const userSchema = new mongoose.Schema(
     },
     wallets: [
       {
-        currency: { type: String },
+        currency: { type: String, enum: ['btc', 'eth', 'usdt'] },
         address: { type: String },
         balance: { type: Number, default: 0 },
       },
     ],
     paymentDetails: [
       {
-        currency: { type: String, enum: ['crypto', 'fiat']},
+        type: {
+          type: String,
+          enum: ['fiat', 'crypto'],
+          required: true,
+        },
+        currency: {
+          type: String,
+          enum: ['usd', 'cad', 'eur', 'gbp', 'btc', 'eth', 'usdt'],
+          required: true,
+        },
         accountDetails: {
           bankName: {
             type: String,
-            trim: true,
             required: function () {
-              return this.currency === 'fiat';
+              return this.type === 'fiat';
             },
           },
           accountNumber: { type: String },
@@ -63,7 +71,7 @@ const userSchema = new mongoose.Schema(
           address: {
             type: String,
             required: function () {
-              return this.currency === 'crypto';
+              return this.type === 'crypto';
             },
           },
         },
@@ -84,16 +92,13 @@ const userSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Transaction',
         },
-        companyName: { type: String},
-        amountInvested: { type: Number },
-        currencyType: {
-          type: String,
-          enum: ['crypto', 'fiat'],
-        },
-        investmentDate: { type: Date },
-        roi: { type: Number, default: 0 },
+        amountInvested: { type: Number, min: 0 },
+        roi: { type: Number, default: 0, min: 0 },
       },
     ],
+    totalROI: { type: Number, default: 0, min: 0 },
+    totalInvestment: { type: Number, default: 0, min: 0 },
+    accountBalance: { type: Number, default: 0, min: 0 },
     address: {
       street: { type: String },
       city: { type: String },
@@ -104,21 +109,14 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Ensure investments defaults to an empty array
 userSchema.path('investments').default([]);
 
-// Method to calculate ROI
 userSchema.methods.calculateROI = function (investmentId) {
   const investment = this.investments.find((inv) => inv.id === investmentId);
   if (!investment) return 0;
 
-  const durationInMonths = Math.floor(
-    (new Date() - new Date(investment.investmentDate)) /
-      (1000 * 60 * 60 * 24 * 30)
-  );
-  const roiRate =
-    investment.currencyType === 'crypto' ? 0.05 : investment.currencyType === 'fiat' ? 0.02 : 0;
-  const roi = investment.amountInvested * roiRate * durationInMonths;
+  const roiRate = 0.03;
+  const roi = investment.amountInvested * roiRate;
   investment.roi = roi;
 
   this.save();
@@ -165,6 +163,7 @@ const adminSchema = new mongoose.Schema(
     },
     lastLogin: { type: Date },
     isSuspended: { type: Boolean, default: false },
+    accountBalance: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

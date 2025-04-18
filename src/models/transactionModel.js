@@ -26,7 +26,7 @@ const transactionSchema = new mongoose.Schema(
     },
     transactionDetails: {
       type: String, // Store JSON string
-      default: '{}', // Default to empty JSON object
+      default: '', // Default to empty JSON object
     },
     proofUrl: {
       type: String,
