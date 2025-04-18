@@ -2,25 +2,10 @@ const { v4: uuidv4 } = require('uuid');
 const Transaction = require('../models/transactionModel');
 const { User } = require('../models/userModel'); // Adjust path as needed
 const createMulter = require('../configs/multerConfig'); // Adjust path as needed
+const {freeCurrencyApiKey} = require('../configs/envConfig')
 
-/**
- * Middleware to check admin permissions
- */
-const checkAdminPermissions = (req, res, next) => {
-  const admin = req.user; // Assumes user is attached by auth middleware
-  if (
-    !admin ||
-    !['admin', 'superadmin'].includes(admin.role) ||
-    !admin.permissions.canViewTransactions
-  ) {
-    return res.status(403).json({ success: false, message: 'Unauthorized: Insufficient permissions' });
-  }
-  next();
-};
 
-/**
- * Create a transaction with proof upload
- */
+
 const createTransaction = async (req, res) => {
   const proofUpload = createMulter().single('proof');
 
@@ -69,7 +54,7 @@ const createTransaction = async (req, res) => {
         amount,
         currencyType,
         cryptoCurrency: currencyType === 'crypto' ? cryptoCurrency : undefined,
-        transactionDetails: transactionDetails ? JSON.parse(transactionDetails) : {},
+        transactionDetails: '',
         proofUrl
       });
 
@@ -237,8 +222,9 @@ const getUserTransactions = async (req, res) => {
 /**
  * Approve a transaction
  */
+const axios = require('axios');
+
 const approveTransaction = [
-  // checkAdminPermissions,
   async (req, res) => {
     const { transactionId } = req.params;
 
@@ -252,24 +238,91 @@ const approveTransaction = [
         return res.status(400).json({ success: false, message: 'Transaction is not pending' });
       }
 
+      // Calculate USD equivalent of the transaction amount
+      let usdAmount;
+      if (transaction.currencyType === 'fiat') {
+        const supportedFiatCurrencies = ['USD', 'EUR', 'GBP', 'CAD'];
+        if (!supportedFiatCurrencies.includes(transaction.fiatCurrency)) {
+          return res.status(400).json({
+            success: false,
+            message: `Unsupported fiat currency: ${transaction.fiatCurrency}. Supported currencies: USD, EUR, GBP, CAD`,
+          });
+        }
+
+        if (transaction.fiatCurrency === 'USD') {
+          usdAmount = transaction.amount;
+        } else {
+          // Use FreeCurrencyAPI to convert fiat currency to USD
+          const response = await axios.get(
+            `https://api.freecurrencyapi.com/v1/latest?base_currency=${transaction.fiatCurrency}&currencies=USD`,
+            {
+              headers: {
+                apikey: freeCurrencyApiKey,
+              },
+            }
+          );
+
+          if (!response.data?.data?.USD) {
+            return res.status(500).json({
+              success: false,
+              message: 'Failed to fetch exchange rate from FreeCurrencyAPI',
+            });
+          }
+
+          const rate = response.data.data.USD;
+          usdAmount = transaction.amount * rate;
+
+          // Round to 2 decimal places for USD
+          usdAmount = Number(usdAmount.toFixed(2));
+        }
+      } else if (transaction.currencyType === 'crypto') {
+        // Fetch current USD price for the crypto currency
+        const cryptoIdMap = {
+          btc: 'bitcoin',
+          eth: 'ethereum',
+          usdt: 'tether',
+        };
+        const cryptoId = cryptoIdMap[transaction.cryptoCurrency];
+        if (!cryptoId) {
+          return res.status(400).json({ success: false, message: 'Unsupported cryptocurrency' });
+        }
+
+        // Use CoinGecko API to get current price
+        const response = await axios.get(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`
+        );
+        const cryptoPrice = response.data[cryptoId].usd;
+        usdAmount = transaction.amount * cryptoPrice;
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid currency type' });
+      }
+
       // Update transaction status to completed
       transaction.status = 'completed';
       await transaction.save();
 
-      // Add to user's investments array
+      // Update user's investments and account balance
       const user = await User.findById(transaction.userId);
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
+      // Add to investments array
       user.investments.push({
         transactionId: transaction._id,
-        companyName: transaction.companyName,
-        amountInvested: transaction.amount,
-        currencyType: transaction.currencyType,
-        investmentDate: new Date(),
+        amountInvested: usdAmount, // Store in USD
         roi: 0,
       });
+
+      // Update totalInvestment (sum of all amountInvested in USD)
+      user.totalInvestment = user.investments.reduce((sum, inv) => sum + (inv.amountInvested || 0), 0);
+
+      // Update totalROI (sum of all roi, unchanged since new investment has roi: 0)
+      user.totalROI = user.investments.reduce((sum, inv) => sum + (inv.roi || 0), 0);
+
+      // Update accountBalance by adding the USD equivalent
+      user.accountBalance = (user.accountBalance || 0) + usdAmount;
+
       await user.save();
 
       res.status(200).json({ success: true, message: 'Transaction approved', transaction });
@@ -284,7 +337,6 @@ const approveTransaction = [
  * Decline a transaction
  */
 const declineTransaction = [
-  // checkAdminPermissions,
   async (req, res) => {
     const { transactionId } = req.params;
 
