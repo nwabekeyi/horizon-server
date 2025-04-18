@@ -18,5 +18,6 @@ module.exports = {
   clientUrl: process.env.CLIENT_URL,
   adminEmail: process.env.ADMIN_EMAIL,
   adminPassword: process.env.ADMIN_PASSWORD,
-  adminCookie: process.env.COOKIE_SECRET
+  adminCookie: process.env.COOKIE_SECRET,
+  twoFaUpdateSecret: process.env.TWO_FA_UPDATE_SECRET,
 };
