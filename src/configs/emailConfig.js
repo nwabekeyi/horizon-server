@@ -1,23 +1,29 @@
 const nodemailer = require("nodemailer");
+const ejs = require("ejs");
+const path = require("path");
 const {
-    emailHost,
-    emailPass,
-    emailUser,
-    emailPort
-} = require('./envConfig')
+  emailHost,
+  emailPass,
+  emailUser,
+  emailPort
+} = require('./envConfig');
 
-// Create a transporter object using SMTP transport
+// Log config for debugging
+
+// Create transporter with explicit SSL settings
 const transporter = nodemailer.createTransport({
-  host: emailHost, // e.g., smtp.gmail.com
-  port: emailPort, // e.g., 587 for TLS, 465 for SSL
-  secure: emailPort == 465, // true for 465 (SSL), false for 587 (TLS)
+  host: emailHost, // 'mail.247activetrading.com'
+  port: emailPort, // 465
+  secure: true,    // Use implicit TLS for port 465
   auth: {
-    user: emailUser, // Your email address
-    pass: emailPass, // Your email password or app-specific password
+    user: emailUser, // '_mainaccount@247activetrading.com'
+    pass: emailPass, // Your cPanel password
   },
+  debug: true,     // Enable debug output
+  logger: true,    // Log to console
 });
 
-// Verify the transporter configuration
+// Verify configuration on startup
 transporter.verify((error, success) => {
   if (error) {
     console.error("Nodemailer configuration error:", error);
@@ -26,15 +32,17 @@ transporter.verify((error, success) => {
   }
 });
 
-// Function to send emails
-const sendEmail = async (options) => {
+// Send email using EJS template
+const sendEmail = async ({ to, subject, template, data }) => {
   try {
+    const templatePath = path.join(__dirname, `../public/emailTemplates/${template}.ejs`);
+    const html = await ejs.renderFile(templatePath, data);
+
     const mailOptions = {
-      from: `"Horizon App" <${process.env.EMAIL_USER}>`, // Sender address
-      to: options.to, // Recipient(s)
-      subject: options.subject, // Subject line
-      text: options.text, // Plain text body
-      html: options.html, // HTML body (optional)
+      from: `"Horizon App" <${emailUser}>`,
+      to,
+      subject,
+      html,
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -42,8 +50,20 @@ const sendEmail = async (options) => {
     return info;
   } catch (error) {
     console.error("Error sending email:", error);
-    throw error; // Re-throw to handle in the calling code
+    throw error;
   }
 };
+
+// Test SMTP connection
+// const testSMTPConnection = async () => {
+//   try {
+//     await transporter.verify();
+//     console.log("SMTP connection test successful");
+//   } catch (error) {
+//     console.error("SMTP connection test failed:", error);
+//   }
+// };
+
+// testSMTPConnection();
 
 module.exports = { sendEmail };

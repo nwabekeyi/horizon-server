@@ -1,38 +1,20 @@
-// authorizationMiddleware.js
+const { verifyJwt } = require('../utils/JWTconfig');
 
-const jwt = require("jsonwebtoken");
-const { User } = require("../models/user"); // Adjust the path to your User model or wherever user data is stored
+const authorize = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
 
-const authorize = (roles = []) => {
-  // If roles are not provided, we allow all roles to access
-  if (typeof roles === "string") {
-    roles = [roles];
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization token required' });
   }
 
-  return async (req, res, next) => {
-    // 1. Check if there is a token in the Authorization header
-    const token = req.header("Authorization")?.replace("Bearer ", "");
+  const decoded = verifyJwt(token);
+  if (!decoded) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
 
-    if (!token) {
-      return res.status(401).json({ success: false, message: "Access denied, no token provided." });
-    }
-
-    try {
-      // 2. Verify the token and get the user
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded; // Store the decoded user data on the request object
-
-      // 3. Check if the user's role is in the allowed roles
-      if (roles.length && !roles.includes(req.user.role)) {
-        return res.status(403).json({ success: false, message: "Forbidden: You do not have access to this resource." });
-      }
-
-      next(); // Proceed to the next middleware or route handler
-    } catch (err) {
-      console.error(err);
-      return res.status(401).json({ success: false, message: "Invalid or expired token." });
-    }
-  };
+  req.user = decoded; // Store decoded data (e.g., user info) in the request object
+  next();
 };
+
 
 module.exports = authorize;
