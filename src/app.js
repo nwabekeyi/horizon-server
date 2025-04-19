@@ -14,6 +14,7 @@ const authController = require('./routes/authRoute');
 const verification = require('./routes/verification');
 const transaction = require('./routes/transactionsRoute');
 const company = require('./routes/companyRoute');
+const security = require('./routes/securityRoute');
 const setupAdminJS = require('./admin');
 const session = require('express-session');
 const paymentDetail = require('./routes/paymentDetailsRoute')
@@ -115,6 +116,7 @@ async function initializeApp() {
     app.use(verification);
     app.use(transaction);
     app.use(company);
+    app.use(security);
     app.use(paymentDetail);
     app.use(withdrawal)
 
