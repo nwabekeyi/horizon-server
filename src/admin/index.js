@@ -69,6 +69,7 @@ async function setupAdminJS(app) {
         require('../models/companyModel'),
         require('../models/registrationPinModel'),
         require('../models/transactionModel'),
+        require('../models/withdrawalModel'),
         require('./resources/user'),
         require('./resources/admin'),
       ],

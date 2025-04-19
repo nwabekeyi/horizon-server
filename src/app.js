@@ -17,6 +17,8 @@ const company = require('./routes/companyRoute');
 const security = require('./routes/securityRoute');
 const setupAdminJS = require('./admin');
 const session = require('express-session');
+const paymentDetail = require('./routes/paymentDetailsRoute')
+const withdrawal = require('./routes/withdrwalRoutes')
 
 const allowedOriginAndMethodMiddleware = require("./middlewares/allowedOriginAndMethodMiddleware");
 const errorMiddleware = require("./middlewares/errorMiddleware");
@@ -115,6 +117,8 @@ async function initializeApp() {
     app.use(transaction);
     app.use(company);
     app.use(security);
+    app.use(paymentDetail);
+    app.use(withdrawal)
 
     app.use(errorMiddleware);
 

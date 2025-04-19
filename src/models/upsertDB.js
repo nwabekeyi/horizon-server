@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Transaction = require('./transactionModel'); // Adjust path to transactionModel.js
 const { dbUrl } = require('../configs/envConfig'); // Adjust path to envConfig
+const { User } = require('./userModel'); // Adjust path to your userModel.js
 
 const MONGO_URI = dbUrl;
 
@@ -28,28 +28,19 @@ const disconnectDB = async () => {
   }
 };
 
-// Migrate transactionDetails from Map to String
-const migrateTransactionDetails = async () => {
+// Migration script to add currency field in paymentDetails
+const migrateUserCurrency = async () => {
   await connectDB();
 
-  console.log('Starting migration to convert transactionDetails from Map to String...');
+  console.log('Starting migration to add currency field in paymentDetails...');
 
   try {
-    const transactions = await Transaction.find({});
-    let updatedCount = 0;
+    const result = await User.updateMany(
+      { 'paymentDetails.currency': { $exists: false } }, // Only where currency doesn't exist
+      { $set: { 'paymentDetails.currency': 'NGN' } } // Set default currency
+    );
 
-    for (const doc of transactions) {
-      if (doc.transactionDetails instanceof Map) {
-        const jsonString = JSON.stringify(Object.fromEntries(doc.transactionDetails));
-        await Transaction.updateOne(
-          { _id: doc._id },
-          { $set: { transactionDetails: jsonString } }
-        );
-        updatedCount++;
-      }
-    }
-
-    console.log(`Migration complete: ${updatedCount} Transaction documents updated`);
+    console.log(`Migration complete: ${result.modifiedCount} User documents updated`);
   } catch (error) {
     console.error('❌ Error during migration:', error);
     process.exit(1);
@@ -59,7 +50,7 @@ const migrateTransactionDetails = async () => {
 };
 
 // Run the migration
-migrateTransactionDetails().catch((error) => {
+migrateUserCurrency().catch((error) => {
   console.error('❌ Migration failed:', error);
   process.exit(1);
 });

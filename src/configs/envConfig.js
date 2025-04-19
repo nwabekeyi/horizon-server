@@ -19,5 +19,7 @@ module.exports = {
   adminEmail: process.env.ADMIN_EMAIL,
   adminPassword: process.env.ADMIN_PASSWORD,
   adminCookie: process.env.COOKIE_SECRET,
+
   twoFaUpdateSecret: process.env.TWO_FA_UPDATE_SECRET,
+  freeCurrencyApiKey: process.env.FREECURRENCYAPI_KEY
 };
