@@ -52,7 +52,6 @@ const userSchema = new mongoose.Schema(
         type: {
           type: String,
           enum: ['fiat', 'crypto'],
-          required: true,
         },
         currency: {
           type: String,
