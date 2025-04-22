@@ -3,6 +3,7 @@ const { User } = require('../models/userModel');
 const RegistrationPin = require('../models/registrationPinModel');
 const { sendEmail } = require('../configs/emailConfig');
 const { signJwt, verifyJwt } = require('../utils/JWTconfig');
+const {prodUrl} = require('../configs/envConfig')
 
 // Generate a random 4-digit PIN
 const generatePin = () => {
@@ -72,26 +73,26 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body || {};
 
   if (!email || !password) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Email and password are required' 
+    return res.status(400).json({
+      success: false,
+      message: 'Email and password are required'
     });
   }
 
   try {
     const user = await User.findOne({ email }).lean(); // use lean() for plain JS object
     if (!user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid email or password' 
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid email or password' 
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
       });
     }
 
@@ -112,10 +113,10 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error during login:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error: Unable to login', 
-      error: error.message || error 
+    res.status(500).json({
+      success: false,
+      message: 'Server error: Unable to login',
+      error: error.message || error
     });
   }
 };
@@ -151,7 +152,7 @@ const sendPasswordResetLink = async (req, res) => {
     const token = generatePasswordResetToken(user._id);
 
     // Send password reset email with the link
-    const resetLink = `https://horizon-kohl-beta.vercel.app//authentication/reset-password?token=${token}`;
+    const resetLink = `${prodUrl}/authentication/reset-password?token=${token}`;
 
     await sendEmail({
       to: email,

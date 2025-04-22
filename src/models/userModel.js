@@ -52,12 +52,10 @@ const userSchema = new mongoose.Schema(
         type: {
           type: String,
           enum: ['fiat', 'crypto'],
-          required: true,
         },
         currency: {
           type: String,
           enum: ['usd', 'cad', 'eur', 'gbp', 'btc', 'eth', 'usdt'],
-          required: true,
         },
         accountDetails: {
           bankName: {
@@ -66,13 +64,28 @@ const userSchema = new mongoose.Schema(
               return this.type === 'fiat';
             },
           },
-          accountNumber: { type: String },
-          accountName: { type: String },
+          accountNumber: {
+            type: String,
+            required: function () {
+              return this.type === 'fiat';
+            },
+          },
+          accountName: {
+            type: String,
+            required: function () {
+              return this.type === 'fiat';
+            },
+          },
           address: {
             type: String,
             required: function () {
               return this.type === 'crypto';
             },
+          },
+          network: {
+            type: String,
+            enum: ['erc20', 'trc20', 'bep20', 'polygon', 'solana'],
+            required: false,
           },
         },
       },
@@ -104,6 +117,14 @@ const userSchema = new mongoose.Schema(
       city: { type: String },
       state: { type: String },
       country: { type: String },
+    },
+    recoveryEmail: {
+      type: String,
+      lowercase: true,
+      validate: {
+        validator: (v) => !v || /^\S+@\S+\.\S+$/.test(v),
+        message: 'Invalid recovery email address',
+      },
     },
   },
   { timestamps: true }

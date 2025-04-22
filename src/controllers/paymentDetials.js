@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const validFiatCurrencies = ['usd', 'cad', 'eur', 'gbp'];
 const validCryptoCurrencies = ['btc', 'eth', 'usdt'];
+const validNetworks = ['erc20', 'trc20', 'bep20']; // Add more if needed
 
 // Helper function
 const validatePaymentDetails = (type, currency, accountDetails) => {
@@ -26,14 +27,20 @@ const validatePaymentDetails = (type, currency, accountDetails) => {
     if (!accountDetails.address) {
       throw new Error('Address is required for crypto payments');
     }
+    if (!accountDetails.network || !validNetworks.includes(accountDetails.network.toLowerCase())) {
+      throw new Error(`Network is required for crypto payments and must be one of: ${validNetworks.join(', ')}`);
+    }
   }
 };
 
 // Add new payment detail
 const addPaymentDetail = async (req, res) => {
   try {
-    const { type, currency, accountDetails } = req.body;
-    const userId = req.user._id;
+    const { userId, type, currency, accountDetails } = req.body;
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Valid userId is required' });
+    }
 
     validatePaymentDetails(type, currency, accountDetails);
 
@@ -48,7 +55,10 @@ const addPaymentDetail = async (req, res) => {
           detail.accountDetails.accountNumber === accountDetails.accountNumber
         );
       }
-      return detail.accountDetails.address === accountDetails.address;
+      return (
+        detail.accountDetails.address === accountDetails.address &&
+        detail.accountDetails.network === accountDetails.network
+      );
     });
 
     if (isDuplicate) {
@@ -72,7 +82,11 @@ const addPaymentDetail = async (req, res) => {
 const deletePaymentDetail = async (req, res) => {
   try {
     const { paymentDetailId } = req.params;
-    const userId = req.user._id;
+    const { userId } = req.body;
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Valid userId is required' });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(paymentDetailId)) {
       return res.status(400).json({ success: false, message: 'Invalid payment detail ID' });
@@ -101,8 +115,11 @@ const deletePaymentDetail = async (req, res) => {
 const updatePaymentDetail = async (req, res) => {
   try {
     const { paymentDetailId } = req.params;
-    const { type, currency, accountDetails } = req.body;
-    const userId = req.user._id;
+    const { userId, type, currency, accountDetails } = req.body;
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Valid userId is required' });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(paymentDetailId)) {
       return res.status(400).json({ success: false, message: 'Invalid payment detail ID' });
@@ -127,7 +144,10 @@ const updatePaymentDetail = async (req, res) => {
           detail.accountDetails.accountNumber === accountDetails.accountNumber
         );
       }
-      return detail.accountDetails.address === accountDetails.address;
+      return (
+        detail.accountDetails.address === accountDetails.address &&
+        detail.accountDetails.network === accountDetails.network
+      );
     });
 
     if (isDuplicate) {

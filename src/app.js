@@ -18,7 +18,8 @@ const security = require('./routes/securityRoute');
 const setupAdminJS = require('./admin');
 const session = require('express-session');
 const paymentDetail = require('./routes/paymentDetailsRoute')
-const withdrawal = require('./routes/withdrwalRoutes')
+const withdrawal = require('./routes/withdrwalRoutes');
+const brokersFee = require('./routes/brokerFeeRoute');
 
 const allowedOriginAndMethodMiddleware = require("./middlewares/allowedOriginAndMethodMiddleware");
 const errorMiddleware = require("./middlewares/errorMiddleware");
@@ -111,6 +112,8 @@ async function initializeApp() {
       res.send("Welcome to The Horizon - Your journey starts here!");
     });
 
+
+    //api routes
     app.use(userRoutes);
     app.use(authController);
     app.use(verification);
@@ -118,7 +121,8 @@ async function initializeApp() {
     app.use(company);
     app.use(security);
     app.use(paymentDetail);
-    app.use(withdrawal)
+    app.use(withdrawal);
+    app.use(brokersFee);
 
     app.use(errorMiddleware);
 

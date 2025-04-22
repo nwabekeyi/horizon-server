@@ -28,19 +28,46 @@ const disconnectDB = async () => {
   }
 };
 
-// Migration script to add currency field in paymentDetails
-const migrateUserCurrency = async () => {
+// Migration script to add recoveryEmail and clean up paymentDetails
+const migrateUserRecoveryEmail = async () => {
   await connectDB();
 
-  console.log('Starting migration to add currency field in paymentDetails...');
+  console.log('Starting migration to add recoveryEmail field and clean up paymentDetails...');
 
   try {
-    const result = await User.updateMany(
-      { 'paymentDetails.currency': { $exists: false } }, // Only where currency doesn't exist
-      { $set: { 'paymentDetails.currency': 'NGN' } } // Set default currency
-    );
+    // Find all users
+    const users = await User.find({});
 
-    console.log(`Migration complete: ${result.modifiedCount} User documents updated`);
+    let updatedCount = 0;
+
+    for (const user of users) {
+      let modified = false;
+
+      // Add recoveryEmail if missing
+      if (!user.recoveryEmail && user.recoveryEmail !== null) {
+        user.recoveryEmail = null;
+        modified = true;
+      }
+
+      // Clean up paymentDetails: Remove entries missing type or currency
+      if (user.paymentDetails && user.paymentDetails.length > 0) {
+        const validPaymentDetails = user.paymentDetails.filter((pd) => {
+          return pd.type && pd.currency; // Keep only entries with type and currency
+        });
+
+        if (validPaymentDetails.length !== user.paymentDetails.length) {
+          user.paymentDetails = validPaymentDetails;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        await user.save();
+        updatedCount++;
+      }
+    }
+
+    console.log(`Migration complete: ${updatedCount} user documents updated.`);
   } catch (error) {
     console.error('❌ Error during migration:', error);
     process.exit(1);
@@ -50,7 +77,7 @@ const migrateUserCurrency = async () => {
 };
 
 // Run the migration
-migrateUserCurrency().catch((error) => {
+migrateUserRecoveryEmail().catch((error) => {
   console.error('❌ Migration failed:', error);
   process.exit(1);
 });
