@@ -1,5 +1,5 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   createTransaction,
   getUserTransactions,
   getTransactions,
@@ -8,8 +8,8 @@ const {
   processPayment,
   approveTransaction,
   declineTransaction,
-} = require('../controllers/transantionsController');
-const { apiVersion } = require('../utils/constants');
+} from '../controllers/transactionsController';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
@@ -512,162 +512,4 @@ router.delete(`${apiVersion}/transactions/:id`, (req, res, next) => {
   deleteTransaction(req, res, next);
 });
 
-/**
- * @swagger
- * /api/v1/transactions/approve/{transactionId}:
- *   patch:
- *     summary: Approve a transaction
- *     description: Updates the status of a pending transaction to 'completed' and adds it to the user's investments array. Restricted to admins with appropriate permissions.
- *     tags:
- *       - Transactions
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: transactionId
- *         required: true
- *         schema:
- *           type: string
- *         description: Transaction's unique ID
- *     responses:
- *       200:
- *         description: Transaction successfully approved
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Transaction approved"
- *                 transaction:
- *                   type: object
- *                   properties:
- *                     companyName:
- *                       type: string
- *                       example: "TechCorp"
- *                     transactionId:
- *                       type: string
- *                       example: "550e8400-e29b-41d4-a716-446655440000"
- *                     userId:
- *                       type: string
- *                       example: "user123"
- *                     status:
- *                       type: string
- *                       example: "completed"
- *                     amount:
- *                       type: number
- *                       example: 100
- *                     currencyType:
- *                       type: string
- *                       example: "fiat"
- *                     cryptoCurrency:
- *                       type: string
- *                       example: null
- *                     transactionDetails:
- *                       type: object
- *                       additionalProperties:
- *                         type: string
- *                       example: {"bankName": "Bank A"}
- *                     proofUrl:
- *                       type: string
- *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *       400:
- *         description: Transaction is not pending
- *       403:
- *         description: Unauthorized - Insufficient permissions
- *       404:
- *         description: Transaction or user not found
- *       500:
- *         description: Internal server error
- */
-router.patch(`${apiVersion}/transactions/approve/:transactionId`, ...approveTransaction);
-
-/**
- * @swagger
- * /api/v1/transactions/decline/{transactionId}:
- *   patch:
- *     summary: Decline a transaction
- *     description: Updates the status of a pending transaction to 'failed'. Restricted to admins with appropriate permissions.
- *     tags:
- *       - Transactions
- *     parameters:
- *       - in: path
- *         name: transactionId
- *         required: true
- *         schema:
- *           type: string
- *         description: Transaction's unique ID
- *     responses:
- *       200:
- *         description: Transaction successfully declined
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Transaction declined"
- *                 transaction:
- *                   type: object
- *                   properties:
- *                     companyName:
- *                       type: string
- *                       example: "TechCorp"
- *                     transactionId:
- *                       type: string
- *                       example: "550e8400-e29b-41d4-a716-446655440000"
- *                     userId:
- *                       type: string
- *                       example: "user123"
- *                     status:
- *                       type: string
- *                       example: "failed"
- *                     amount:
- *                       type: number
- *                       example: 100
- *                     currencyType:
- *                       type: string
- *                       example: "fiat"
- *                     cryptoCurrency:
- *                       type: string
- *                       example: null
- *                     transactionDetails:
- *                       type: object
- *                       additionalProperties:
- *                         type: string
- *                       example: {"bankName": "Bank A"}
- *                     proofUrl:
- *                       type: string
- *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *       400:
- *         description: Transaction is not pending
- *       403:
- *         description: Unauthorized - Insufficient permissions
- *       404:
- *         description: Transaction not found
- *       500:
- *         description: Internal server error
- */
-router.patch(`${apiVersion}/transactions/decline/:transactionId`, ...declineTransaction);
-
-module.exports = router;
+export default router;

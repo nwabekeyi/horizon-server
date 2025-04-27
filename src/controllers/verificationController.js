@@ -1,5 +1,5 @@
-const { User } = require('../models/userModel');
-const createMulter = require('../configs/multerConfig'); // adjust path if needed
+import { User } from '../models/userModel.js';
+import createMulter from '../configs/multerConfig.js'; // adjust path if needed
 
 // Multer for uploading up to 3 KYC files
 const uploadKYC = createMulter('png').fields([
@@ -9,7 +9,7 @@ const uploadKYC = createMulter('png').fields([
 ]);
 
 // 1. User submits KYC documents (with file uploads)
-const submitKYC = async (req, res) => {
+export const submitKYC = async (req, res) => {
   uploadKYC(req, res, async (err) => {
     if (err) {
       console.error('Multer error:', err);
@@ -67,7 +67,7 @@ const submitKYC = async (req, res) => {
 };
 
 // 2. Admin updates KYC status (unchanged)
-const updateKYCStatus = async (req, res) => {
+export const updateKYCStatus = async (req, res) => {
   try {
     const { userId, status } = req.body;
 
@@ -94,9 +94,4 @@ const updateKYCStatus = async (req, res) => {
     console.error('Error updating KYC status:', err);
     res.status(500).json({ message: 'Internal server error.' });
   }
-};
-
-module.exports = {
-  submitKYC,
-  updateKYCStatus,
 };

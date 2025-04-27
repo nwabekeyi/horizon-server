@@ -1,58 +1,59 @@
-const mongoose = require('mongoose');
-const { adminEmail, adminPassword, adminCookie, dbUrl } = require('./envConfig');
+import mongoose from 'mongoose';
+import { adminEmail, adminPassword, adminCookie, dbUrl } from './envConfig.js'; // Ensure this is using the correct path
 
-// Import your Mongoose models
-const User = require('../models/userModel');
-const AccountDetails = require('../models/accountDetails');
-const companyModel = require('../models/companyModel');
-const transactionModel = require('../models/transactionModel');
+// Dynamically import Mongoose models
+import User from '../models/userModel.js';
+import AccountDetails from '../models/accountDetails.js';
+import companyModel from '../models/companyModel.js';
+import transactionModel from '../models/transactionModel.js';
 
 const setupAdmin = async (app) => {
-  // Dynamically import AdminJS and related modules
-  const { default: AdminJS } = await import('adminjs');
-  const { default: AdminJSExpress } = await import('@adminjs/express');
-  const AdminJSMongoose = await import('@adminjs/mongoose');
+  try {
+    // Dynamically import AdminJS and related modules
+    const { default: AdminJS } = await import('adminjs');
+    const { default: AdminJSExpress } = await import('@adminjs/express');
+    const AdminJSMongoose = await import('@adminjs/mongoose');
 
-//   // Check if the correct properties are available in AdminJSMongoose
-//   if (!AdminJSMongoose.Resource || !AdminJSMongoose.Database) {
-//     console.error("Error: AdminJSMongoose does not have Resource or Database properties.");
-//     return;
-//   }
+    // Register AdminJS Mongoose adapter
+    AdminJS.registerAdapter({
+      Resource: AdminJSMongoose.Resource,
+      Database: AdminJSMongoose.Database,
+    });
 
-  // Register AdminJS Mongoose adapter
-  AdminJS.registerAdapter({
-    Resource: AdminJSMongoose.Resource,
-    Database: AdminJSMongoose.Database,
-  });
+    // Wait for MongoDB connection
+    await mongoose.connect(dbUrl); // Replace with your MongoDB connection URL
 
-  // Wait for MongoDB connection
-  await mongoose.connect(dbUrl); // Replace with your MongoDB connection URL
+    // Initialize AdminJS with your Mongoose models
+    const adminJs = new AdminJS({
+      rootPath: '/admin',
+      resources: [
+        { resource: User },
+        { resource: AccountDetails },
+        { resource: companyModel },
+        { resource: transactionModel },
+      ],
+      database: mongoose.connection, // Pass mongoose connection directly
+    });
 
-  // Initialize AdminJS with your Mongoose models
-  const adminJs = new AdminJS({
-    rootPath: '/admin',
-    resources: [
-      { resource: User },
-      { resource: AccountDetails },
-      { resource: companyModel },
-      { resource: transactionModel },
-    ],
-    database: mongoose.connection, // Pass mongoose connection directly
-  });
+    // Set up the authentication route for the Admin panel
+    const router = AdminJSExpress.buildAuthenticatedRouter(adminJs, {
+      authenticate: async (email, password) => {
+        if (email === adminEmail && password === adminPassword) {
+          return { email };
+        }
+        return null;
+      },
+      cookiePassword: adminCookie,
+    });
 
-  // Set up the authentication route for the Admin panel
-  const router = AdminJSExpress.buildAuthenticatedRouter(adminJs, {
-    authenticate: async (email, password) => {
-      if (email === adminEmail && password === adminPassword) {
-        return { email };
-      }
-      return null;
-    },
-    cookiePassword: adminCookie,
-  });
+    // Use the AdminJS route
+    app.use(adminJs.options.rootPath, router);
 
-  // Use the AdminJS route
-  app.use(adminJs.options.rootPath, router);
+    console.log("AdminJS setup complete");
+
+  } catch (error) {
+    console.error('Error setting up AdminJS:', error);
+  }
 };
 
-module.exports = setupAdmin;
+export default setupAdmin;

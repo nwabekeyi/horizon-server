@@ -1,9 +1,10 @@
-const bcrypt = require('bcrypt');
-const { User } = require('../models/userModel');
-const RegistrationPin = require('../models/registrationPinModel');
-const { sendEmail } = require('../configs/emailConfig');
-const { signJwt, verifyJwt } = require('../utils/JWTconfig');
-const {prodUrl} = require('../configs/envConfig')
+// authController
+import bcrypt from 'bcrypt';
+import { User } from '../models/userModel';
+import RegistrationPin from '../models/registrationPinModel';
+import { sendEmail } from '../configs/emailConfig';
+import { signJwt, verifyJwt } from '../utils/JWTconfig';
+import { prodUrl } from '../configs/envConfig';
 
 // Generate a random 4-digit PIN
 const generatePin = () => {
@@ -11,7 +12,7 @@ const generatePin = () => {
 };
 
 // Register user (generate and send PIN)
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   console.log('Register User Request Body:', req.body);
   const { email, firstName } = req.body || {};
 
@@ -68,7 +69,7 @@ const registerUser = async (req, res) => {
 };
 
 // Login user
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   console.log('Login Request Body:', req.body);
   const { email, password } = req.body || {};
 
@@ -121,14 +122,13 @@ const loginUser = async (req, res) => {
   }
 };
 
-
 // Generate password reset token (valid for 1 hour)
 const generatePasswordResetToken = (userId) => {
   return signJwt({ userId }, '1h'); // Token expires in 1 hour
 };
 
 // Send password reset link via email
-const sendPasswordResetLink = async (req, res) => {
+export const sendPasswordResetLink = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -179,7 +179,7 @@ const sendPasswordResetLink = async (req, res) => {
 };
 
 // Reset password after validating the token
-const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
 
   if (!token || !newPassword) {
@@ -224,5 +224,3 @@ const resetPassword = async (req, res) => {
     });
   }
 };
-
-module.exports = { registerUser, loginUser, sendPasswordResetLink, resetPassword };

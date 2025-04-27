@@ -1,6 +1,6 @@
-const app = require("./src/app"); // Import the Express app
-const http = require("http");
-const {port} = require('./src/configs/envConfig')
+import app from './src/app.js'; // Import the Express app
+import http from 'http';
+import { port } from './src/configs/envConfig';
 
 // Create and start the server
 const server = http.createServer(app);

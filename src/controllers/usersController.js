@@ -1,11 +1,11 @@
-const bcrypt = require('bcrypt');
-const {User} = require('../models/userModel');
-const RegistrationPin = require('../models/registrationPinModel');
-const createMulter = require('../configs/multerConfig');
+import createMulter from '../configs/multerConfig';
+import RegistrationPin from '../models/registrationPinModel';
+import { User } from '../models/userModel';
+import bcrypt from 'bcrypt';
 
 
 // Create user with PIN verification
-const createUser = async (req, res) => {
+export const createUser = async (req, res) => {
   console.log('Create User Request Body:', req.body);
   const { firstName, lastName, email, password, role, pin } = req.body || {};
 
@@ -74,7 +74,7 @@ const createUser = async (req, res) => {
 };
 
 // Update user
-const updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   const profilePictureUpload = createMulter("profile_pictures", "png").single("profilePicture");
 
   // Handle profile picture upload
@@ -159,7 +159,7 @@ const updateUser = async (req, res) => {
 };
 
 // Get all users
-const getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
   try {
     const users = await User.find();
     res.status(200).json({ users });
@@ -169,7 +169,7 @@ const getUsers = async (req, res) => {
 };
 
 // Get a user by ID
-const getUser = async (req, res) => {
+export const getUser = async (req, res) => {
   const userId = req.params.id;
 
   try {
@@ -184,7 +184,7 @@ const getUser = async (req, res) => {
 };
 
 // Add account details
-const addAccountDetails = async (req, res) => {
+export const addAccountDetails = async (req, res) => {
   const { userId } = req.params;
   const { currency, accountDetails } = req.body;
 
@@ -239,9 +239,8 @@ const addAccountDetails = async (req, res) => {
   }
 };
 
-//delete user 
 // Delete a user by ID
-const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   const userId = req.params.id;
 
   try {
@@ -257,7 +256,3 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ message: 'Server error while deleting user', error: error.message });
   }
 };
-
-
-
-module.exports = { createUser, updateUser, deleteUser, getUsers, getUser, addAccountDetails };

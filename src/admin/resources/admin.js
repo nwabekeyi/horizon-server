@@ -1,9 +1,12 @@
-const { Admin } = require('../../models/userModel');
+// src/admin/resources/adminResource.js
+import { Admin } from '../../models/userModel';
 
-const adminResource = {
+export const adminResource = {
   resource: Admin,
+  resourceId: 'admin',
   options: {
     properties: {
+      _id: { isVisible: { list: false, show: true, edit: false, filter: false } },
       firstName: { isVisible: { list: true, edit: true, filter: true, show: true } },
       lastName: { isVisible: { list: true, edit: true, filter: true, show: true } },
       email: { isVisible: { list: true, edit: true, filter: true, show: true } },
@@ -24,16 +27,14 @@ const adminResource = {
     },
     actions: {
       new: {
-        isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'superadmin',  // Added check for undefined
+        isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'superadmin',
       },
       edit: {
-        isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'superadmin',  // Added check for undefined
+        isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'superadmin',
       },
       delete: {
-        isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'superadmin',  // Added check for undefined
+        isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === 'superadmin',
       },
     },
   },
 };
-
-module.exports = adminResource;

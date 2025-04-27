@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const withdrawalSchema = new mongoose.Schema(
   {
@@ -17,57 +17,57 @@ const withdrawalSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'failed', 'processing', 'successful'],
       default: 'pending',
     },
-    paymentAccountDetails: [
-      {
-        type: {
+    paymentAccountDetails: {
+      type: {
+        type: String,
+        enum: ['fiat', 'crypto'],
+        required: false, // Changed to optional
+      },
+      currency: {
+        type: String,
+        enum: ['usd', 'cad', 'eur', 'gbp', 'btc', 'eth', 'usdt'],
+        required: false, // Changed to optional
+      },
+      accountDetails: {
+        bankName: {
           type: String,
-          enum: ['fiat', 'crypto'],
-          required: true,
+          required: function () {
+            return this.type === 'fiat';
+          },
         },
-        currency: {
+        accountNumber: {
           type: String,
-          enum: ['usd', 'cad', 'eur', 'gbp', 'btc', 'eth', 'usdt'],
+          required: function () {
+            return this.type === 'fiat';
+          },
         },
-        accountDetails: {
-          bankName: {
-            type: String,
-            required: function () {
-              return this.type === 'fiat';
-            },
+        accountName: {
+          type: String,
+          required: function () {
+            return this.type === 'fiat';
           },
-          accountNumber: {
-            type: String,
-            required: function () {
-              return this.type === 'fiat';
-            },
+        },
+        address: {
+          type: String,
+          required: function () {
+            return this.type === 'crypto';
           },
-          accountName: {
-            type: String,
-            required: function () {
-              return this.type === 'fiat';
-            },
-          },
-          address: {
-            type: String,
-            required: function () {
-              return this.type === 'crypto';
-            },
-          },
-          network: {
-            type: String,
-            enum: ['erc20', 'trc20', 'bep20', 'polygon', 'solana'],
-            required: false,
-          },
+        },
+        network: {
+          type: String,
+          enum: ['erc20', 'trc20', 'bep20', 'polygon', 'solana'],
+          required: false,
         },
       },
-    ],
-    withdrawalPin: {type: String, trim: true},
-    brokerFeeProof: {type: String, required: true},
-    brokerFee: {type: Number, required: true},
+    },
+    withdrawalPin: { type: String, trim: true },
+    brokerFeeProof: { type: String, required: true },
+    brokerFee: { type: Number, required: true },
     remarks: { type: String },
   },
   { timestamps: true }
 );
 
 const Withdrawal = mongoose.model('Withdrawal', withdrawalSchema);
-module.exports = Withdrawal;
+
+export default Withdrawal;

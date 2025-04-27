@@ -1,13 +1,13 @@
 // routes/twoFARoutes.js
-const express = require('express');
-const {
+import express from 'express';
+import {
   setupTwoFA,
   verifyTwoFASecret,
   requestTwoFAUpdate,
   confirmTwoFAUpdate,
   disableTwoFA,
-} = require('../securities/twoFactorAuth');
-const { apiVersion } = require('../utils/constants');
+} from '../securities/twoFactorAuth';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
@@ -190,4 +190,4 @@ router.delete(`${apiVersion}/twofa/disable`, (req, res, next) => {
   disableTwoFA(req, res, next);
 });
 
-module.exports = router;
+export default router;

@@ -1,29 +1,24 @@
-const { v4: uuidv4 } = require('uuid');
-const Transaction = require('../models/transactionModel');
-const { User } = require('../models/userModel'); // Adjust path as needed
-const createMulter = require('../configs/multerConfig'); // Adjust path as needed
-const {freeCurrencyApiKey} = require('../configs/envConfig')
+import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
+import { freeCurrencyApiKey } from '../configs/envConfig';
+import createMulter from '../configs/multerConfig';
+import Transaction from '../models/transactionModel';
+import {User} from  '../models/userModel'
 
-
-
-const createTransaction = async (req, res) => {
+/**
+ * Create a new transaction
+ */
+export const createTransaction = async (req, res) => {
   const proofUpload = createMulter().single('proof');
 
   proofUpload(req, res, async (err) => {
     if (err) {
-      console.error("Proof upload error:", err);
-      return res.status(400).json({ success: false, message: "Proof upload failed", error: err.message });
+      console.error('Proof upload error:', err);
+      return res.status(400).json({ success: false, message: 'Proof upload failed', error: err.message });
     }
 
     try {
-      const {
-        companyName,
-        userId,
-        amount,
-        currencyType,
-        cryptoCurrency,
-        transactionDetails
-      } = req.body;
+      const { companyName, userId, amount, currencyType, fiatCurrency, cryptoCurrency, transactionDetails } = req.body;
 
       if (!companyName) return res.status(400).json({ success: false, message: 'Company name is required' });
       if (!userId) return res.status(400).json({ success: false, message: 'User ID is required' });
@@ -32,14 +27,25 @@ const createTransaction = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid currency type' });
       }
 
-      if (currencyType === 'crypto') {
-        if (!cryptoCurrency) return res.status(400).json({ success: false, message: 'Crypto currency type is required' });
-        if (!['usdt', 'btc', 'eth'].includes(cryptoCurrency)) {
-          return res.status(400).json({ success: false, message: 'Invalid crypto currency type' });
+      if (currencyType === 'fiat') {
+        if (!fiatCurrency || !['USD', 'CAD', 'EUR', 'GBP'].includes(fiatCurrency)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid or missing fiat currency (must be USD, CAD, EUR, or GBP)',
+          });
+        }
+        if (cryptoCurrency) {
+          return res.status(400).json({ success: false, message: 'Crypto currency should not be included for fiat' });
         }
       }
-      if (currencyType === 'fiat' && cryptoCurrency) {
-        return res.status(400).json({ success: false, message: 'Crypto currency should not be included for fiat' });
+
+      if (currencyType === 'crypto') {
+        if (!cryptoCurrency || !['usdt', 'btc', 'eth'].includes(cryptoCurrency)) {
+          return res.status(400).json({ success: false, message: 'Invalid or missing crypto currency type' });
+        }
+        if (fiatCurrency) {
+          return res.status(400).json({ success: false, message: 'Fiat currency should not be included for crypto' });
+        }
       }
 
       if (!req.file || !req.file.path) return res.status(400).json({ success: false, message: 'Proof of payment is required' });
@@ -53,15 +59,16 @@ const createTransaction = async (req, res) => {
         userId,
         amount,
         currencyType,
+        fiatCurrency: currencyType === 'fiat' ? fiatCurrency : undefined,
         cryptoCurrency: currencyType === 'crypto' ? cryptoCurrency : undefined,
-        transactionDetails: '',
-        proofUrl
+        transactionDetails: transactionDetails || '',
+        proofUrl,
       });
 
       const transaction = await newTransaction.save();
       res.status(201).json({ success: true, transaction });
     } catch (err) {
-      console.error(err);
+      console.error('Error creating transaction:', err);
       res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
     }
   });
@@ -70,13 +77,13 @@ const createTransaction = async (req, res) => {
 /**
  * Update a transaction with optional proof update
  */
-const updateTransaction = async (req, res) => {
+export const updateTransaction = async (req, res) => {
   const proofUpload = createMulter().single('proof');
 
   proofUpload(req, res, async (err) => {
     if (err) {
-      console.error("Proof upload error:", err);
-      return res.status(400).json({ success: false, message: "Proof upload failed", error: err.message });
+      console.error('Proof upload error:', err);
+      return res.status(400).json({ success: false, message: 'Proof upload failed', error: err.message });
     }
 
     try {
@@ -109,7 +116,7 @@ const updateTransaction = async (req, res) => {
 
       res.status(200).json({ success: true, transaction });
     } catch (err) {
-      console.error(err);
+      console.error('Error updating transaction:', err);
       res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
     }
   });
@@ -118,13 +125,13 @@ const updateTransaction = async (req, res) => {
 /**
  * Process a payment and update transaction status
  */
-const processPayment = async (req, res) => {
+export const processPayment = async (req, res) => {
   const proofUpload = createMulter().single('proof');
 
   proofUpload(req, res, async (err) => {
     if (err) {
-      console.error("Proof upload error:", err);
-      return res.status(400).json({ success: false, message: "Proof upload failed", error: err.message });
+      console.error('Proof upload error:', err);
+      return res.status(400).json({ success: false, message: 'Proof upload failed', error: err.message });
     }
 
     try {
@@ -146,7 +153,7 @@ const processPayment = async (req, res) => {
 
       const updates = {
         status: paymentStatus,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
 
       if (req.file && req.file.path) {
@@ -161,8 +168,8 @@ const processPayment = async (req, res) => {
 
       res.status(200).json({ success: true, transaction: updatedTransaction });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+      console.error('Error processing payment:', err);
+      res.status(500).json({ success: false, message: `Server蔚Error: ${err.message}` });
     }
   });
 };
@@ -170,32 +177,68 @@ const processPayment = async (req, res) => {
 /**
  * Delete a transaction by ID
  */
-const deleteTransaction = async (req, res) => {
+export const deleteTransaction = async (req) => {
   try {
-    const { id } = req.params;
+    const { transactionId } = req.params;
 
-    const transaction = await Transaction.findOneAndDelete({ transactionId: id });
-
+    // Find the transaction
+    const transaction = await Transaction.findOne({ transactionId });
     if (!transaction) {
-      return res.status(404).json({ success: false, message: 'Transaction not found' });
+      console.log('Transaction not found:', transactionId);
+      return { success: false, message: 'Transaction not found' };
     }
 
-    res.status(200).json({ success: true, message: 'Transaction deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    const { amount, status, userId, proofUrl } = transaction;
+
+    // Delete the transaction
+    await Transaction.findOneAndDelete({ transactionId });
+
+    // If transaction was completed, update the user's balance
+    if (status === 'completed') {
+      const user = await User.findById(userId);
+      if (user) {
+        // Remove the investment from the user's investments array
+        user.investments = user.investments.filter(
+          (inv) => inv.transactionId.toString() !== transaction._id.toString()
+        );
+        // Recalculate totalInvestment and totalROI
+        user.totalInvestment = user.investments.reduce((sum, inv) => sum + (inv.amountInvested || 0), 0);
+        user.totalROI = user.investments.reduce((sum, inv) => sum + (inv.roi || 0), 0);
+        // Update accountBalance
+        user.accountBalance = (user.accountBalance || 0) - amount;
+        await user.save();
+      }
+    }
+
+    // Delete proof image from Cloudinary if it exists
+    if (proofUrl) {
+      try {
+        await deleteFromCloudinary(proofUrl); // Placeholder: Implement this function
+      } catch (cloudinaryError) {
+        console.error('Failed to delete proof image from Cloudinary:', cloudinaryError.message);
+        // Continue execution, as image deletion failure shouldn’t block transaction deletion
+      }
+    }
+
+    console.log('Transaction deleted successfully:', transactionId);
+    return { success: true, message: 'Transaction deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting transaction:', error.message);
+    return { success: false, message: `Server Error: ${error.message}` };
   }
 };
+
+
 
 /**
  * Get all transactions
  */
-const getTransactions = async (req, res) => {
+export const getTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, transactions });
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching transactions:', err);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -203,7 +246,7 @@ const getTransactions = async (req, res) => {
 /**
  * Get all transactions for a specific user by userId
  */
-const getUserTransactions = async (req, res) => {
+export const getUserTransactions = async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -214,7 +257,7 @@ const getUserTransactions = async (req, res) => {
 
     res.status(200).json({ success: true, transactions });
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching user transactions:', err);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -222,39 +265,42 @@ const getUserTransactions = async (req, res) => {
 /**
  * Approve a transaction
  */
-const axios = require('axios');
-
-const approveTransaction = [
-  async (req, res) => {
+export const approveTransaction = [
+  async (req, res, next) => {
     const { transactionId } = req.params;
 
     try {
+      console.log('Approve transaction called for:', transactionId);
+      console.log('Session data:', req.session);
+
       // Find transaction
       const transaction = await Transaction.findOne({ transactionId });
       if (!transaction) {
+        console.log('Transaction not found:', transactionId);
         return res.status(404).json({ success: false, message: 'Transaction not found' });
       }
       if (transaction.status !== 'pending') {
+        console.log('Transaction is not pending:', transaction.status);
         return res.status(400).json({ success: false, message: 'Transaction is not pending' });
       }
 
       // Calculate USD equivalent of the transaction amount
       let usdAmount;
       if (transaction.currencyType === 'fiat') {
-        const supportedFiatCurrencies = ['USD', 'EUR', 'GBP', 'CAD'];
+        const supportedFiatCurrencies = ['USD', 'CAD', 'EUR', 'GBP'];
         if (!supportedFiatCurrencies.includes(transaction.fiatCurrency)) {
+          console.log('Unsupported fiat currency:', transaction.fiatCurrency);
           return res.status(400).json({
             success: false,
-            message: `Unsupported fiat currency: ${transaction.fiatCurrency}. Supported currencies: USD, EUR, GBP, CAD`,
+            message: `Unsupported fiat currency: ${transaction.fiatCurrency}. Supported currencies: USD, CAD, EUR, GBP`,
           });
         }
 
         if (transaction.fiatCurrency === 'USD') {
           usdAmount = transaction.amount;
         } else {
-          // Use FreeCurrencyAPI to convert fiat currency to USD
           const response = await axios.get(
-            `https://api.freecurrencyapi.com/v1/latest?base_currency=${transaction.fiatCurrency}&currencies=USD`,
+            `https://api.freecurrencyapi.com/v1/latest?base_currency=${transaction.fiatCurrency}¤cies=USD`,
             {
               headers: {
                 apikey: freeCurrencyApiKey,
@@ -263,6 +309,7 @@ const approveTransaction = [
           );
 
           if (!response.data?.data?.USD) {
+            console.log('Failed to fetch exchange rate from FreeCurrencyAPI');
             return res.status(500).json({
               success: false,
               message: 'Failed to fetch exchange rate from FreeCurrencyAPI',
@@ -271,12 +318,9 @@ const approveTransaction = [
 
           const rate = response.data.data.USD;
           usdAmount = transaction.amount * rate;
-
-          // Round to 2 decimal places for USD
           usdAmount = Number(usdAmount.toFixed(2));
         }
       } else if (transaction.currencyType === 'crypto') {
-        // Fetch current USD price for the crypto currency
         const cryptoIdMap = {
           btc: 'bitcoin',
           eth: 'ethereum',
@@ -284,26 +328,37 @@ const approveTransaction = [
         };
         const cryptoId = cryptoIdMap[transaction.cryptoCurrency];
         if (!cryptoId) {
+          console.log('Unsupported cryptocurrency:', transaction.cryptoCurrency);
           return res.status(400).json({ success: false, message: 'Unsupported cryptocurrency' });
         }
 
-        // Use CoinGecko API to get current price
         const response = await axios.get(
           `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`
         );
+        if (!response.data[cryptoId]?.usd) {
+          console.log('Failed to fetch crypto price from CoinGecko');
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch cryptocurrency price from CoinGecko',
+          });
+        }
         const cryptoPrice = response.data[cryptoId].usd;
         usdAmount = transaction.amount * cryptoPrice;
+        usdAmount = Number(usdAmount.toFixed(2));
       } else {
+        console.log('Invalid currency type:', transaction.currencyType);
         return res.status(400).json({ success: false, message: 'Invalid currency type' });
       }
 
       // Update transaction status to completed
       transaction.status = 'completed';
+      transaction.updatedAt = Date.now();
       await transaction.save();
 
       // Update user's investments and account balance
       const user = await User.findById(transaction.userId);
       if (!user) {
+        console.log('User not found:', transaction.userId);
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
@@ -325,6 +380,7 @@ const approveTransaction = [
 
       await user.save();
 
+      console.log('Transaction approved successfully:', transactionId);
       res.status(200).json({ success: true, message: 'Transaction approved', transaction });
     } catch (err) {
       console.error('Error approving transaction:', err.message);
@@ -336,24 +392,32 @@ const approveTransaction = [
 /**
  * Decline a transaction
  */
-const declineTransaction = [
-  async (req, res) => {
+export const declineTransaction = [
+  async (req, res, next) => {
     const { transactionId } = req.params;
 
     try {
+      console.log('Decline transaction called for:', transactionId);
+      console.log('Session data:', req.session);
+
+
       // Find transaction
       const transaction = await Transaction.findOne({ transactionId });
       if (!transaction) {
+        console.log('Transaction not found:', transactionId);
         return res.status(404).json({ success: false, message: 'Transaction not found' });
       }
       if (transaction.status !== 'pending') {
+        console.log('Transaction is not pending:', transaction.status);
         return res.status(400).json({ success: false, message: 'Transaction is not pending' });
       }
 
       // Update transaction status to failed
       transaction.status = 'failed';
+      transaction.updatedAt = Date.now();
       await transaction.save();
 
+      console.log('Transaction declined successfully:', transactionId);
       res.status(200).json({ success: true, message: 'Transaction declined', transaction });
     } catch (err) {
       console.error('Error declining transaction:', err.message);
@@ -362,13 +426,3 @@ const declineTransaction = [
   },
 ];
 
-module.exports = {
-  createTransaction,
-  updateTransaction,
-  processPayment,
-  deleteTransaction,
-  getTransactions,
-  getUserTransactions,
-  approveTransaction,
-  declineTransaction
-};

@@ -1,10 +1,10 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   addPaymentDetail,
   deletePaymentDetail,
   updatePaymentDetail,
-} = require('../controllers/paymentDetials');
-const { apiVersion } = require('../utils/constants');
+} from '../controllers/paymentDetials';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
@@ -139,4 +139,4 @@ router.delete(`${apiVersion}/payment-details/delete/:paymentDetailId`, deletePay
  */
 router.patch(`${apiVersion}/payment-details/update/:paymentDetailId`, updatePaymentDetail);
 
-module.exports = router;
+export default router;

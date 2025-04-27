@@ -1,9 +1,12 @@
-const { User } = require('../../models/userModel');
+// src/admin/resources/userResource.js
+import { User } from '../../models/userModel.js';
 
-const userResource = {
+export const userResource = {
   resource: User,
+  resourceId: 'Users',
   options: {
     properties: {
+      _id: { isVisible: { list: false, show: true, edit: false, filter: false } },
       firstName: { isVisible: { list: true, edit: true, filter: true, show: true } },
       lastName: { isVisible: { list: true, edit: true, filter: true, show: true } },
       email: { isVisible: { list: true, edit: true, filter: true, show: true } },
@@ -35,5 +38,3 @@ const userResource = {
     },
   },
 };
-
-module.exports = userResource;

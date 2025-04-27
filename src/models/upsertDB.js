@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const { dbUrl } = require('../configs/envConfig'); // Adjust path to envConfig
-const { User } = require('./userModel'); // Adjust path to your userModel.js
+import mongoose from 'mongoose';
+import { dbUrl } from '../configs/envConfig'; // Adjust path to envConfig
+import { User } from './userModel'; // Adjust path to your userModel.js
 
 const MONGO_URI = dbUrl;
 

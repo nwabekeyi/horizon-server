@@ -1,7 +1,6 @@
-const express = require('express');
-const { loginUser, registerUser, sendPasswordResetLink, resetPassword } = require('../controllers/authContoller'); // Fixed typo: authContoller -> authController
-const { apiVersion } = require('../utils/constants');
-
+import express from 'express';
+import { loginUser, registerUser, sendPasswordResetLink, resetPassword } from '../controllers/authContoller'; // Fixed typo: authContoller -> authController
+import { apiVersion } from '../utils/constants';
 const router = express.Router();
 
 console.log('Auth Routes - API Version:', apiVersion);
@@ -287,4 +286,4 @@ router.patch(`${apiVersion}/auth/reset-password`, (req, res, next) => {
   resetPassword(req, res, next);
 });
 
-module.exports = router;
+export default router;

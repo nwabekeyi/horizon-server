@@ -1,5 +1,5 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   getAllWithdrawals,
   getWithdrawalById,
   updateWithdrawal,
@@ -10,8 +10,8 @@ const {
   makeWithdrawal,
   markWithdrawalAsPaid,
   getWithdrawalsByUserId,
-} = require('../controllers/withdrawalController');
-const { apiVersion } = require('../utils/constants');
+} from '../controllers/withdrawalController';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
@@ -654,4 +654,4 @@ router.get(`${apiVersion}/withdrawals/user/:userId`, (req, res, next) => {
   getWithdrawalsByUserId(req, res, next);
 });
 
-module.exports = router;
+export default router;

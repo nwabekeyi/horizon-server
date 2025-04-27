@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const transactionSchema = new mongoose.Schema(
   {
@@ -17,6 +17,13 @@ const transactionSchema = new mongoose.Schema(
       enum: ['fiat', 'crypto'],
       required: true,
     },
+    fiatCurrency: {
+      type: String,
+      enum: ['USD', 'CAD', 'EUR', 'GBP'],
+      required: function () {
+        return this.currencyType === 'fiat';
+      },
+    },
     cryptoCurrency: {
       type: String,
       enum: ['usdt', 'btc', 'eth'],
@@ -25,8 +32,8 @@ const transactionSchema = new mongoose.Schema(
       },
     },
     transactionDetails: {
-      type: String, // Store JSON string
-      default: '', // Default to empty JSON object
+      type: String,
+      default: '',
     },
     proofUrl: {
       type: String,
@@ -40,4 +47,4 @@ const transactionSchema = new mongoose.Schema(
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
-module.exports = Transaction;
+export default Transaction;

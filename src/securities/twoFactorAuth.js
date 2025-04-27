@@ -1,12 +1,11 @@
-// controllers/twoFAController.js
-const bcrypt = require('bcrypt');
-const { User } = require('../models/userModel');
-const { sendEmail } = require('../configs/emailConfig');
-const jwt = require('jsonwebtoken');
-const {prodUrl}= require('../configs/envConfig');
+import bcrypt from 'bcrypt';
+import { User } from '../models/userModel';
+import { sendEmail } from '../configs/emailConfig';
+import jwt from 'jsonwebtoken';
+import { prodUrl } from '../configs/envConfig';
 
 // Setup 2FA
-const setupTwoFA = async (req, res) => {
+export const setupTwoFA = async (req, res) => {
   const { userId } = req.user;
   const { secret } = req.body;
 
@@ -32,7 +31,7 @@ const setupTwoFA = async (req, res) => {
 };
 
 // Verify 2FA Secret
-const verifyTwoFASecret = async (req, res) => {
+export const verifyTwoFASecret = async (req, res) => {
   const { userId } = req.user;
   const { secret } = req.body;
 
@@ -55,7 +54,7 @@ const verifyTwoFASecret = async (req, res) => {
 };
 
 // Request to update 2FA secret
-const requestTwoFAUpdate = async (req, res) => {
+export const requestTwoFAUpdate = async (req, res) => {
   const { userId } = req.user;
 
   try {
@@ -66,9 +65,10 @@ const requestTwoFAUpdate = async (req, res) => {
       to: user.email,
       subject: 'Confirm 2FA Secret Update',
       template: 'confirm-2fa-update',
-      data: { name: user.firstName,  verificationLink: `${prodUrl}/api/2fa/confirm-update/${token}` },
+      data: { name: user.firstName, verificationLink: `${prodUrl}/api/2fa/confirm-update/${token}` },
     });
- console.log('token:', token);
+
+    console.log('token:', token);
     res.status(200).json({ success: true, message: 'Confirmation email sent for 2FA update' });
   } catch (error) {
     console.error('Error requesting 2FA update:', error);
@@ -77,7 +77,7 @@ const requestTwoFAUpdate = async (req, res) => {
 };
 
 // Confirm 2FA update
-const confirmTwoFAUpdate = async (req, res) => {
+export const confirmTwoFAUpdate = async (req, res) => {
   const { token } = req.params;
   const { newSecret } = req.body;
 
@@ -97,7 +97,7 @@ const confirmTwoFAUpdate = async (req, res) => {
 };
 
 // Disable 2FA
-const disableTwoFA = async (req, res) => {
+export const disableTwoFA = async (req, res) => {
   const { userId } = req.user;
 
   try {
@@ -111,27 +111,3 @@ const disableTwoFA = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
-module.exports = {
-  setupTwoFA,
-  verifyTwoFASecret,
-  requestTwoFAUpdate,
-  confirmTwoFAUpdate,
-  disableTwoFA,
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

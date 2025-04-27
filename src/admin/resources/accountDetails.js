@@ -1,4 +1,4 @@
-const AccountDetails = require('../../models/accountDetails');
+import AccountDetails from '../../models/accountDetails';
 
 const accountDetailsResource = {
   resource: AccountDetails,
@@ -21,4 +21,4 @@ const accountDetailsResource = {
   },
 };
 
-module.exports = accountDetailsResource;
+export default accountDetailsResource;

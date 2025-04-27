@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const registrationPinSchema = new mongoose.Schema({
   email: {
@@ -23,4 +23,4 @@ const registrationPinSchema = new mongoose.Schema({
 
 const RegistrationPin = mongoose.model('RegistrationPin', registrationPinSchema);
 
-module.exports = RegistrationPin;
+export default RegistrationPin;

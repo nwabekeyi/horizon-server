@@ -1,35 +1,42 @@
-require('dotenv').config();
-const express = require("express");
-const helmet = require("helmet");
-const hpp = require("hpp");
-const morgan = require("morgan");
-const fs = require("fs");
-const path = require("path");
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./configs/swaggerConfig");
-const limiter = require("./middlewares/rateLimiter");
-const connectDB = require("./configs/DBconns");
-const userRoutes = require('./routes/userRoutes');
-const authController = require('./routes/authRoute');
-const verification = require('./routes/verification');
-const transaction = require('./routes/transactionsRoute');
-const company = require('./routes/companyRoute');
-const security = require('./routes/securityRoute');
-const setupAdminJS = require('./admin');
-const session = require('express-session');
-const paymentDetail = require('./routes/paymentDetailsRoute')
-const withdrawal = require('./routes/withdrwalRoutes');
-const brokersFee = require('./routes/brokerFeeRoute');
+import dotenv from 'dotenv';
+dotenv.config();
 
-const allowedOriginAndMethodMiddleware = require("./middlewares/allowedOriginAndMethodMiddleware");
-const errorMiddleware = require("./middlewares/errorMiddleware");
+import express from 'express';
+import helmet from 'helmet';
+import hpp from 'hpp';
+import morgan from 'morgan';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './configs/swaggerConfig.js';
+import limiter from './middlewares/rateLimiter.js';
+import connectDB from './configs/DBconns.js';
+import userRoutes from './routes/userRoutes.js';
+import authController from './routes/authRoute.js';
+import verification from './routes/verification.js';
+import transaction from './routes/transactionsRoute.js';
+import company from './routes/companyRoute.js';
+import security from './routes/securityRoute.js';
+import setupAdminJS from './admin';
+import session from 'express-session';
+import paymentDetail from './routes/paymentDetailsRoute.js';
+import withdrawal from './routes/withdrwalRoutes.js';
+import brokersFee from './routes/brokerFeeRoute.js';
+
+import allowedOriginAndMethodMiddleware from './middlewares/allowedOriginAndMethodMiddleware.js';
+import errorMiddleware from './middlewares/errorMiddleware.js';
+
+// Set up __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 // Rate Limiting
 app.use(limiter);
 
-// Body parsing middleware (before CORS for proper parsing)
+// Body parsing middleware
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -45,10 +52,10 @@ app.use(
   })
 );
 
-// CORS Middleware (before helmet to set headers first)
+// CORS Middleware
 app.use(allowedOriginAndMethodMiddleware);
 
-// Security Middleware with updated CSP
+// Security Middleware with CSP
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -66,11 +73,11 @@ app.use(
           "https://fonts.googleapis.com",
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
         connectSrc: [
           "'self'",
-          "https://horizon-amber-xi.vercel.app", // Allow frontend
-          "http://localhost:3000", // Allow dev
+          "https://horizon-amber-xi.vercel.app",
+          "http://localhost:3000",
         ],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -79,7 +86,7 @@ app.use(
   })
 );
 
-// Log response headers for debugging
+// Debug response headers
 app.use((req, res, next) => {
   const originalSend = res.send;
   res.send = function (body) {
@@ -90,15 +97,15 @@ app.use((req, res, next) => {
 });
 
 // Logging Middleware
-const logStream = fs.createWriteStream(path.join(__dirname, "access.log"), { flags: "a" });
-logStream.on("error", (err) => console.error("Failed to write to access.log:", err));
-app.use(morgan("combined", { stream: logStream }));
-app.use(morgan("dev"));
+const logStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
+logStream.on('error', (err) => console.error('Failed to write to access.log:', err));
+app.use(morgan('combined', { stream: logStream }));
+app.use(morgan('dev'));
 
 // Swagger Setup
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Initialize App with AdminJS
+// App Initialization
 async function initializeApp() {
   try {
     await connectDB();
@@ -108,12 +115,11 @@ async function initializeApp() {
     app.use(adminJs.options.rootPath, adminRouter);
     console.log(`AdminJS successfully mounted at ${adminJs.options.rootPath}`);
 
-    app.get("/", (req, res) => {
-      res.send("Welcome to The Horizon - Your journey starts here!");
+    app.get('/', (req, res) => {
+      res.send('Welcome to The Horizon - Your journey starts here!');
     });
 
-
-    //api routes
+    // API routes
     app.use(userRoutes);
     app.use(authController);
     app.use(verification);
@@ -139,4 +145,5 @@ async function initializeApp() {
 
 initializeApp();
 
-module.exports = app;
+// Optional for testing import elsewhere
+export default app;

@@ -1,9 +1,9 @@
-const { User } = require('../models/userModel');
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+import { User } from '../models/userModel';
 
 const validFiatCurrencies = ['usd', 'cad', 'eur', 'gbp'];
 const validCryptoCurrencies = ['btc', 'eth', 'usdt'];
-const validNetworks = ['erc20', 'trc20', 'bep20']; // Add more if needed
+const validNetworks = ['erc20', 'trc20', 'bep20'];
 
 // Helper function
 const validatePaymentDetails = (type, currency, accountDetails) => {
@@ -11,11 +11,11 @@ const validatePaymentDetails = (type, currency, accountDetails) => {
     throw new Error('Type must be either "fiat" or "crypto"');
   }
 
-  if (type === 'fiat' && !validFiatCurrencies.includes(currency)) {
+  if (type === 'fiat' && !validFiatCurrencies.includes(currency.toLowerCase())) {
     throw new Error('Invalid fiat currency');
   }
 
-  if (type === 'crypto' && !validCryptoCurrencies.includes(currency)) {
+  if (type === 'crypto' && !validCryptoCurrencies.includes(currency.toLowerCase())) {
     throw new Error('Invalid crypto currency');
   }
 
@@ -34,7 +34,7 @@ const validatePaymentDetails = (type, currency, accountDetails) => {
 };
 
 // Add new payment detail
-const addPaymentDetail = async (req, res) => {
+export const addPaymentDetail = async (req, res) => {
   try {
     const { userId, type, currency, accountDetails } = req.body;
 
@@ -79,7 +79,7 @@ const addPaymentDetail = async (req, res) => {
 };
 
 // Delete payment detail
-const deletePaymentDetail = async (req, res) => {
+export const deletePaymentDetail = async (req, res) => {
   try {
     const { paymentDetailId } = req.params;
     const { userId } = req.body;
@@ -112,7 +112,7 @@ const deletePaymentDetail = async (req, res) => {
 };
 
 // Update payment detail
-const updatePaymentDetail = async (req, res) => {
+export const updatePaymentDetail = async (req, res) => {
   try {
     const { paymentDetailId } = req.params;
     const { userId, type, currency, accountDetails } = req.body;
@@ -166,8 +166,4 @@ const updatePaymentDetail = async (req, res) => {
   }
 };
 
-module.exports = {
-  addPaymentDetail,
-  deletePaymentDetail,
-  updatePaymentDetail,
-};
+

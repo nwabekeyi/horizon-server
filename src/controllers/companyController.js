@@ -1,8 +1,8 @@
-const Company = require('../models/companyModel');
-const { validationResult } = require('express-validator');
-const User = require('../models/userModel'); // Adjust path if different
+import Company from '../models/companyModel';
+import { validationResult } from 'express-validator';
+import {User} from '../models/userModel';
 
-const subscribeToCompany = async (req, res) => {
+export const subscribeToCompany = async (req, res) => {
   const { companyId, userId, amount, currencyType } = req.body;
 
   try {
@@ -61,7 +61,7 @@ const subscribeToCompany = async (req, res) => {
   }
 };
 
-const getAllCompanies = async (req, res) => {
+export const getAllCompanies = async (req, res) => {
   try {
     const companies = await Company.find();
     res.status(200).json(companies);
@@ -71,7 +71,7 @@ const getAllCompanies = async (req, res) => {
   }
 };
 
-const getCompanyById = async (req, res) => {
+export const getCompanyById = async (req, res) => {
   try {
     const company = await Company.findById(req.params.id);
     if (!company) {
@@ -84,7 +84,7 @@ const getCompanyById = async (req, res) => {
   }
 };
 
-const createCompany = async (req, res) => {
+export const createCompany = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -115,7 +115,7 @@ const createCompany = async (req, res) => {
   }
 };
 
-const updateCompany = async (req, res) => {
+export const updateCompany = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -132,7 +132,7 @@ const updateCompany = async (req, res) => {
   }
 };
 
-const deleteCompany = async (req, res) => {
+export const deleteCompany = async (req, res) => {
   try {
     const deleted = await Company.findByIdAndDelete(req.params.id);
     if (!deleted) {
@@ -145,56 +145,47 @@ const deleteCompany = async (req, res) => {
   }
 };
 
-// Get all unique industries from the companies without repetition
-const getAllIndustries = async (req, res) => {
+export const getAllIndustries = async (req, res) => {
   console.log('GET /api/v1/companies/industries - Request received');
   try {
-    // Fetch all companies, selecting only the 'industry' field
     const companies = await Company.find().select('industry');
     console.log('Companies fetched:', companies.length);
 
-    // Check if companies exist
     if (!companies || companies.length === 0) {
       console.log('No companies found in the database');
       return res.status(404).json({ message: 'No companies found in the database' });
     }
 
-    // Use Set to collect unique industries
     const industries = new Set();
     companies.forEach((company) => {
-      if (company.industry) { // Check if industry exists and is not null/undefined
+      if (company.industry) {
         industries.add(company.industry);
       }
     });
 
     console.log('Unique industries found:', industries.size);
 
-    // If no industries found
     if (industries.size === 0) {
       console.log('No industries found in the companies');
       return res.status(404).json({ message: 'No industries found in the companies' });
     }
 
-    // Convert Set to Array and respond
     res.status(200).json(Array.from(industries));
   } catch (error) {
     console.error('Error retrieving industries:', error.message, error.stack);
-    res.status(500).json({ 
-      message: 'Server error occurred while retrieving industries', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Server error occurred while retrieving industries',
+      error: error.message,
     });
   }
 };
 
-// Get companies by a specific industry (case-insensitive)
-const getCompaniesByIndustry = async (req, res) => {
+export const getCompaniesByIndustry = async (req, res) => {
   const { industry } = req.params;
 
   try {
-    // Convert input to lowercase
     const normalizedIndustry = industry.toLowerCase();
 
-    // Find companies with industry matched in lowercase
     const companies = await Company.find({
       industry: { $regex: new RegExp(`^${normalizedIndustry}$`, 'i') }
     });
@@ -208,17 +199,4 @@ const getCompaniesByIndustry = async (req, res) => {
     console.error('Get companies by industry error:', error);
     res.status(500).json({ message: 'Error retrieving companies by industry', error: error.message });
   }
-};
-
-
-// Export all the controllers as an object
-module.exports = {
-  getAllCompanies,
-  getCompanyById,
-  createCompany,
-  updateCompany,
-  deleteCompany,
-  subscribeToCompany,
-  getAllIndustries, // Updated name
-  getCompaniesByIndustry, // Updated name
 };

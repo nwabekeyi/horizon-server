@@ -1,97 +1,231 @@
-const Transaction = require('../../models/transactionModel');
-const { User } = require('../../models/userModel');
+import AdminJS from 'adminjs';
+import Transaction from '../../models/transactionModel';
+import { Components } from '../components.js';
+import { approveTransaction, declineTransaction, deleteTransaction } from '../../controllers/transactionsController';
 
-// Dynamically import ESM modules
-const getAdminJS = async () => (await import('adminjs')).default;
-const getAxios = async () => (await import('axios')).default;
+// Before hook: Validate transaction and log action start
+const beforeHook = async (request, context) => {
+  const { record, currentAdmin, action } = context;
+  console.log(`Before ${action.name} for transaction: ${record.params.transactionId} by admin: ${currentAdmin?.email}`);
 
-const transactionResource = {
+  if (action.name === 'delete') {
+    // Optional: Add restrictions, e.g., prevent deletion of completed transactions
+    // if (record.params.status === 'completed') {
+    //   throw new Error('Cannot delete completed transactions');
+    // }
+  } else if (action.name === 'approve' || action.name === 'decline') {
+    if (record.params.status !== 'pending') {
+      throw new Error('Transaction is not pending');
+    }
+  }
+
+  return request;
+};
+
+// After hook: Log response and customize success message
+const afterHook = async (originalResponse, request, context) => {
+  const { record, currentAdmin, action } = context;
+  console.log(`After ${action.name} for transaction: ${record.params.transactionId}`, {
+    response: originalResponse,
+    admin: currentAdmin?.email,
+  });
+
+  if (originalResponse.notice?.type === 'success') {
+    originalResponse.notice.message = `Transaction ${action.name}d successfully by ${currentAdmin?.email}`;
+  }
+
+  return originalResponse;
+};
+
+export const transactionResource = {
   resource: Transaction,
   options: {
+    id: 'Transaction',
     properties: {
-      companyName: { isVisible: { list: true, edit: true, filter: true, show: true } },
-      transactionId: { isVisible: { list: true, edit: false, filter: true, show: true } },
-      userId: { isVisible: { list: true, edit: true, filter: true, show: true }, reference: 'User' },
-      status: {
-        isVisible: { list: true, edit: true, filter: true, show: true },
-        availableValues: [
-          { value: 'pending', label: 'Pending' },
-          { value: 'completed', label: 'Completed' },
-          { value: 'failed', label: 'Failed' },
-        ],
+      _id: { isVisible: { list: false, show: true, edit: false, filter: false } },
+      companyName: { isVisible: { list: true, show: true, edit: true, filter: true } },
+      transactionId: { isVisible: { list: true, show: true, edit: false, filter: true } },
+      userId: {
+        isVisible: { list: true, show: true, edit: true, filter: true },
+        reference: 'User',
       },
-      amount: { isVisible: { list: true, edit: true, filter: true, show: true } },
+      amount: { isVisible: { list: true, show: true, edit: true, filter: true } },
       currencyType: {
-        isVisible: { list: true, edit: true, filter: true, show: true },
+        isVisible: { list: true, show: true, edit: true, filter: true },
         availableValues: [
           { value: 'fiat', label: 'Fiat' },
           { value: 'crypto', label: 'Crypto' },
         ],
       },
+      fiatCurrency: {
+        isVisible: { list: true, show: true, edit: true, filter: true },
+        availableValues: [
+          { value: 'USD', label: 'USD' },
+          { value: 'CAD', label: 'CAD' },
+          { value: 'EUR', label: 'EUR' },
+          { value: 'GBP', label: 'GBP' },
+        ],
+      },
       cryptoCurrency: {
-        isVisible: { list: true, edit: true, filter: true, show: true },
+        isVisible: { list: true, show: true, edit: true, filter: true },
         availableValues: [
           { value: 'usdt', label: 'USDT' },
           { value: 'btc', label: 'BTC' },
           { value: 'eth', label: 'ETH' },
         ],
       },
-      transactionDetails: {
-        isVisible: { list: false, edit: true, filter: false, show: true },
-        type: 'string', // Treat as string in AdminJS UI
+      transactionDetails: { isVisible: { list: false, show: true, edit: true, filter: false } },
+      proofUrl: {
+        isVisible: { list: true, show: true, edit: true, filter: false },
         components: {
-          edit: async () => (await getAdminJS()).bundle('./components/TransactionDetailsEdit.jsx'),
-          show: async () => (await getAdminJS()).bundle('./components/TransactionDetailsShow.jsx'),
+          list: Components.ImageRenderer,
+          show: Components.ImageRenderer,
         },
       },
-      proofUrl: { isVisible: { list: true, edit: true, filter: true, show: true } },
+      status: {
+        isVisible: { list: true, show: true, edit: true, filter: true },
+        availableValues: [
+          { value: 'pending', label: 'Pending' },
+          { value: 'completed', label: 'Completed' },
+          { value: 'failed', label: 'Failed' },
+        ],
+      },
+      createdAt: { isVisible: { list: true, show: true, edit: false, filter: true } },
+      updatedAt: { isVisible: { list: true, show: true, edit: false, filter: true } },
     },
     actions: {
-      approve: {
+      list: {
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+      },
+      show: {
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+      },
+      edit: {
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+      },
+      new: {
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+      },
+      delete: {
         actionType: 'record',
-        icon: 'Check',
-        isVisible: (context) => {
-          const record = context.record;
-          const user = context._admin;
-          return (
-            record?.params?.status === 'pending' &&
-            (user?.role === 'admin' || user?.role === 'superadmin') &&
-            user?.permissions?.canViewTransactions
-          );
-        },
+        icon: 'Trash',
+        isVisible: true, // Visible for all transactions; can restrict with: (context) => context.record?.params.status !== 'completed'
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+        component: false,
+        showInDrawer: false,
+        guard: 'confirmDeleteTransaction',
+        before: [beforeHook],
+        after: [afterHook],
         handler: async (request, response, context) => {
-          const axios = await getAxios();
-          const { record, currentAdmin } = context;
-          const transactionId = record.params.transactionId;
-
+          const { record, currentAdmin, h } = context;
           try {
-            const apiResponse = await axios.patch(
-              `http://localhost:5000/api/v1/transactions/approve/${transactionId}`,
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${currentAdmin.token}`, // Adjust based on your auth setup
-                },
-              }
-            );
+            console.log('Delete handler called for transaction:', record.params.transactionId);
 
-            if (apiResponse.data.success) {
-              record.params.status = 'completed';
-              return {
-                record: record.toJSON(currentAdmin),
-                notice: {
-                  message: 'Transaction approved successfully',
-                  type: 'success',
-                },
-              };
-            } else {
-              throw new Error(apiResponse.data.message);
+            // Authorization check
+            if (!currentAdmin || !['admin', 'superadmin'].includes(currentAdmin.role)) {
+              throw new Error('Unauthorized - Admin or Superadmin access required');
             }
-          } catch (error) {
+
+            // Create mock req object
+            const req = {
+              params: { transactionId: record.params.transactionId },
+            };
+
+            // Call controller directly
+            const result = await deleteTransaction(req);
+
+            if (!result.success) {
+              throw new Error(result.message || 'Failed to delete transaction');
+            }
+
+            const response = {
+              record: record.toJSON(currentAdmin),
+              notice: {
+                message: result.message || 'Transaction deleted successfully',
+                type: 'success',
+              },
+              redirectUrl: h.resourceActionUrl({
+                resourceId: 'Transaction',
+                actionName: 'list',
+              }),
+            };
+            console.log('Delete response:', response);
+            return response;
+          } catch (err) {
+            console.error('Delete handler error:', err.message);
             return {
               record: record.toJSON(currentAdmin),
               notice: {
-                message: error.message || 'Failed to approve transaction',
+                message: err.message || 'Failed to delete transaction',
+                type: 'error',
+              },
+            };
+          }
+        },
+      },
+      approve: {
+        actionType: 'record',
+        icon: 'Check',
+        isVisible: (context) => context.record?.params.status === 'pending',
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+        component: false,
+        showInDrawer: false,
+        guard: 'confirmApproveTransaction',
+        before: [beforeHook],
+        after: [afterHook],
+        handler: async (request, response, context) => {
+          const { record, currentAdmin, h } = context;
+          try {
+            console.log('Approve handler called for transaction:', record.params.transactionId);
+
+            if (!currentAdmin || !['admin', 'superadmin'].includes(currentAdmin.role)) {
+              throw new Error('Unauthorized - Admin or Superadmin access required');
+            }
+
+            const req = {
+              params: { transactionId: record.params.transactionId },
+              session: { adminUser: currentAdmin },
+            };
+            const res = {
+              status: (code) => ({
+                json: (data) => ({ code, data }),
+              }),
+            };
+
+            const result = await new Promise((resolve, reject) => {
+              approveTransaction[0](req, res, (err) => {
+                if (err) reject(err);
+                else resolve(res.status(200).json);
+              });
+            });
+
+            if (!result.data.success) {
+              throw new Error(result.data.message || 'Failed to approve transaction');
+            }
+
+            record.params.status = 'completed';
+            await record.save();
+
+            const response = {
+              record: record.toJSON(currentAdmin),
+              notice: {
+                message: result.data.message || 'Transaction approved successfully',
+                type: 'success',
+              },
+              redirectUrl: h.recordActionUrl({
+                resourceId: 'Transaction',
+                recordId: record.id(),
+                actionName: 'show',
+              }),
+            };
+            console.log('Approve response:', response);
+            return response;
+          } catch (err) {
+            console.error('Approve handler error:', err.message);
+            return {
+              record: record.toJSON(currentAdmin),
+              notice: {
+                message: err.message || 'Failed to approve transaction',
                 type: 'error',
               },
             };
@@ -101,48 +235,66 @@ const transactionResource = {
       decline: {
         actionType: 'record',
         icon: 'X',
-        isVisible: (context) => {
-          const record = context.record;
-          const user = context._admin;
-          return (
-            record?.params?.status === 'pending' &&
-            (user?.role === 'admin' || user?.role === 'superadmin') &&
-            user?.permissions?.canViewTransactions
-          );
-        },
+        isVisible: (context) => context.record?.params.status === 'pending',
+        isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
+        component: false,
+        showInDrawer: false,
+        guard: 'confirmDeclineTransaction',
+        before: [beforeHook],
+        after: [afterHook],
         handler: async (request, response, context) => {
-          const axios = await getAxios();
-          const { record, currentAdmin } = context;
-          const transactionId = record.params.transactionId;
-
+          const { record, currentAdmin, h } = context;
           try {
-            const apiResponse = await axios.patch(
-              `http://localhost:5000/api/v1/transactions/decline/${transactionId}`,
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${currentAdmin.token}`, // Adjust based on your auth setup
-                },
-              }
-            );
+            console.log('Decline handler called for transaction:', record.params.transactionId);
 
-            if (apiResponse.data.success) {
-              record.params.status = 'failed';
-              return {
-                record: record.toJSON(currentAdmin),
-                notice: {
-                  message: 'Transaction declined successfully',
-                  type: 'success',
-                },
-              };
-            } else {
-              throw new Error(apiResponse.data.message);
+            if (!currentAdmin || !['admin', 'superadmin'].includes(currentAdmin.role)) {
+              throw new Error('Unauthorized - Admin or Superadmin access required');
             }
-          } catch (error) {
+
+            const req = {
+              params: { transactionId: record.params.transactionId },
+              session: { adminUser: currentAdmin },
+            };
+            const res = {
+              status: (code) => ({
+                json: (data) => ({ code, data }),
+              }),
+            };
+
+            const result = await new Promise((resolve, reject) => {
+              declineTransaction[0](req, res, (err) => {
+                if (err) reject(err);
+                else resolve(res.status(200).json);
+              });
+            });
+
+            if (!result.data.success) {
+              throw new Error(result.data.message || 'Failed to decline transaction');
+            }
+
+            record.params.status = 'failed';
+            await record.save();
+
+            const response = {
+              record: record.toJSON(currentAdmin),
+              notice: {
+                message: result.data.message || 'Transaction declined successfully',
+                type: 'success',
+              },
+              redirectUrl: h.recordActionUrl({
+                resourceId: 'Transaction',
+                recordId: record.id(),
+                actionName: 'show',
+              }),
+            };
+            console.log('Decline response:', response);
+            return response;
+          } catch (err) {
+            console.error('Decline handler error:', err.message);
             return {
               record: record.toJSON(currentAdmin),
               notice: {
-                message: error.message || 'Failed to decline transaction',
+                message: err.message || 'Failed to decline transaction',
                 type: 'error',
               },
             };
@@ -152,5 +304,3 @@ const transactionResource = {
     },
   },
 };
-
-module.exports = transactionResource;

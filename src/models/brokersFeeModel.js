@@ -1,5 +1,4 @@
-// models/BrokerFee.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const brokerFeeSchema = new mongoose.Schema(
   {
@@ -27,4 +26,4 @@ brokerFeeSchema.statics.createSingle = async function (data = {}) {
 
 const BrokerFee = mongoose.model('BrokerFee', brokerFeeSchema);
 
-module.exports = BrokerFee;
+export default BrokerFee;

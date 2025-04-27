@@ -1,5 +1,4 @@
-// middleware.js
-require('dotenv').config();
+import 'dotenv/config';
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -55,4 +54,4 @@ const allowedOriginAndMethodMiddleware = (req, res, next) => {
   next();
 };
 
-module.exports = allowedOriginAndMethodMiddleware;
+export default allowedOriginAndMethodMiddleware;
