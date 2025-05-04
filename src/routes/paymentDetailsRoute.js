@@ -137,6 +137,6 @@ router.delete(`${apiVersion}/payment-details/delete/:paymentDetailId`, deletePay
  *       200:
  *         description: Payment detail updated successfully
  */
-router.patch(`${apiVersion}/payment-details/update/:paymentDetailId`, updatePaymentDetail);
+router.put(`${apiVersion}/payment-details/update/:paymentDetailId`, updatePaymentDetail);
 
 export default router;

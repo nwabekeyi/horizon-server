@@ -10,6 +10,7 @@ import {
   makeWithdrawal,
   markWithdrawalAsPaid,
   getWithdrawalsByUserId,
+  cancelWithdrawal
 } from '../controllers/withdrawalController';
 import { apiVersion } from '../utils/constants';
 
@@ -652,6 +653,61 @@ router.patch(`${apiVersion}/withdrawals/paid/:id`, (req, res, next) => {
 router.get(`${apiVersion}/withdrawals/user/:userId`, (req, res, next) => {
   console.log(`GET ${apiVersion}/withdrawals/user/:userId called`);
   getWithdrawalsByUserId(req, res, next);
+});
+
+
+/**
+ * @swagger
+ * /api/v1/withdrawals/cancel/{id}:
+ *   patch:
+ *     summary: Cancel a withdrawal
+ *     description: Cancel a withdrawal request by its ID.
+ *     tags:
+ *       - Withdrawals
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the withdrawal to cancel
+ *     responses:
+ *       200:
+ *         description: Withdrawal canceled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 withdrawalId:
+ *                   type: string
+ *             example: { "message": "Withdrawal request canceled.", "withdrawalId": "1234567890abcdef" }
+ *       404:
+ *         description: Withdrawal not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *             example: { "error": "Withdrawal not found." }
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *             example: { "error": "Internal server error." }
+ */
+router.patch(`${apiVersion}/withdrawals/cancel/:id`, (req, res, next) => {
+  console.log(`PATCH ${apiVersion}/withdrawals/cancel/:id called`);
+  cancelWithdrawal(req, res, next); // Call the cancel controller function
 });
 
 export default router;

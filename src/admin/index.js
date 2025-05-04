@@ -14,7 +14,7 @@ import { userResource } from './resources/user.js';
 import { brokerFeeResource } from './resources/brokerFee.js';
 import { withdrawalResource } from './resources/withdrawal.js';
 import { componentLoader } from './components.js';
-
+import paymentAccountResources from './resources/paymentAccount.js'
 export { componentLoader };
 
 export default async function setupAdminJS(app) {
@@ -26,7 +26,7 @@ export default async function setupAdminJS(app) {
     const adminJsOptions = {
       databases: [],
       rootPath: '/admin',
-      resources: [transactionResource, adminResource, userResource, brokerFeeResource, withdrawalResource],
+      resources: [paymentAccountResources, transactionResource, adminResource, userResource, brokerFeeResource, withdrawalResource],
       componentLoader,
       branding: {
         companyName: '247AT',

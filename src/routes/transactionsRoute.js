@@ -6,8 +6,7 @@ import {
   updateTransaction,
   deleteTransaction,
   processPayment,
-  approveTransaction,
-  declineTransaction,
+  cancelTransaction
 } from '../controllers/transactionsController';
 import { apiVersion } from '../utils/constants';
 
@@ -511,5 +510,86 @@ router.delete(`${apiVersion}/transactions/:id`, (req, res, next) => {
   console.log(`DELETE ${apiVersion}/transactions/${req.params.id} called`);
   deleteTransaction(req, res, next);
 });
+
+
+/**
+ * @swagger
+ * /api/v1/transactions/cancel/{id}:
+ *   post:
+ *     summary: Cancel a transaction
+ *     description: Updates the transaction status to 'cancelled' for a given transaction ID.
+ *     tags:
+ *       - Transactions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The transaction's unique ID
+ *     responses:
+ *       200:
+ *         description: Transaction successfully cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 transaction:
+ *                   type: object
+ *                   properties:
+ *                     companyName:
+ *                       type: string
+ *                       example: "TechCorp"
+ *                     transactionId:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     userId:
+ *                       type: string
+ *                       example: "user123"
+ *                     status:
+ *                       type: string
+ *                       example: "cancelled"
+ *                     amount:
+ *                       type: number
+ *                       example: 100
+ *                     currencyType:
+ *                       type: string
+ *                       example: "fiat"
+ *                     cryptoCurrency:
+ *                       type: string
+ *                       example: null
+ *                     transactionDetails:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: string
+ *                       example: {"bankName": "Bank A"}
+ *                     proofUrl:
+ *                       type: string
+ *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-08T12:00:00Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-08T12:00:00Z"
+ *       400:
+ *         description: Invalid transaction ID or transaction already completed/failed
+ *       404:
+ *         description: Transaction not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post(`${apiVersion}/transactions/cancel/:id`, (req, res, next) => {
+  console.log(`POST ${apiVersion}/transactions/cancel/${req.params.id} called`);
+  // Call the cancelTransaction function to handle the cancellation logic
+  cancelTransaction(req, res, next);
+});
+
 
 export default router;

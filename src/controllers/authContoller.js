@@ -81,7 +81,7 @@ export const loginUser = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email }).lean(); // use lean() for plain JS object
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -97,7 +97,19 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const { password: _, ...userWithoutPassword } = user; // remove password
+    // 2FA check
+    if (user.twoFA?.enabled) {
+      return res.status(200).json({
+        success: true,
+        message: '2FA required',
+        twoFA: {
+          userId: user._id,
+          enabled: true
+        }
+      });
+    }
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
 
     const payload = {
       id: user._id,
@@ -110,7 +122,7 @@ export const loginUser = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: userWithoutPassword, // full user object minus password
+      user: userWithoutPassword,
     });
   } catch (error) {
     console.error('Error during login:', error);
@@ -121,6 +133,8 @@ export const loginUser = async (req, res) => {
     });
   }
 };
+
+
 
 // Generate password reset token (valid for 1 hour)
 const generatePasswordResetToken = (userId) => {
@@ -222,5 +236,32 @@ export const resetPassword = async (req, res) => {
       message: 'Server error: Unable to reset password',
       error: error.message || error,
     });
+  }
+};
+
+
+// Confirm Password
+export const confirmPassword = async (req, res) => {
+  const { userId, password } = req.body;
+
+  if (!userId || !password) {
+    return res.status(400).json({ success: false, message: 'User ID and password are required' });
+  }
+
+  try {
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Password confirmed successfully' });
+  } catch (error) {
+    console.error('Error confirming password:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

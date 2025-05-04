@@ -23,6 +23,8 @@ import session from 'express-session';
 import paymentDetail from './routes/paymentDetailsRoute.js';
 import withdrawal from './routes/withdrwalRoutes.js';
 import brokersFee from './routes/brokerFeeRoute.js';
+import paymentAccount from './routes/paymentAccountRoute.js'
+import recoveryEmail from './routes/recoveryEmailRoute.js'
 
 import allowedOriginAndMethodMiddleware from './middlewares/allowedOriginAndMethodMiddleware.js';
 import errorMiddleware from './middlewares/errorMiddleware.js';
@@ -129,6 +131,8 @@ async function initializeApp() {
     app.use(paymentDetail);
     app.use(withdrawal);
     app.use(brokersFee);
+    app.use(paymentAccount);
+    app.use(recoveryEmail);
 
     app.use(errorMiddleware);
 

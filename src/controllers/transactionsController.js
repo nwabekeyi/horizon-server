@@ -426,3 +426,33 @@ export const declineTransaction = [
   },
 ];
 
+
+/**
+ * Cancel a transaction
+ */
+export const cancelTransaction = async (req, res) => {
+  try {
+    const { transactionId } = req.params;  // transactionId from URL params
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required in body' });
+    }
+
+    const transaction = await Transaction.findOne({ transactionId, userId });
+
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    // Set the transaction status to 'cancelled'
+    transaction.status = 'cancelled';
+    await transaction.save();
+
+    res.status(200).json({ success: true, message: 'Transaction successfully cancelled', transaction });
+  } catch (err) {
+    console.error('Error canceling transaction:', err);
+    res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+  }
+};
+

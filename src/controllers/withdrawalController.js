@@ -121,6 +121,12 @@ export const approveWithdrawal = async (req) => {
       data: {
         firstName: user.firstName,
         rawPin: rawPin,
+        withdrawalDetails: {
+          amount: withdrawal.amount,
+          brokerFee: withdrawal.brokerFee,
+          status: withdrawal.status,
+          createdAt: withdrawal.createdAt.toLocaleDateString(),
+        },
       },
     });
 
@@ -139,7 +145,7 @@ export const approveWithdrawal = async (req) => {
 export const declineWithdrawal = async (req) => {
   try {
     const { withdrawalId } = req.params;
-    const { reason } = req.body; // Optional: allow admins to add a reason for decline
+    const { reason } = req.body;
 
     const withdrawal = await Withdrawal.findById(withdrawalId);
     if (!withdrawal) {
@@ -155,7 +161,7 @@ export const declineWithdrawal = async (req) => {
     }
 
     withdrawal.status = 'declined';
-    withdrawal.remarks = reason || withdrawal.remarks; // append reason if provided
+    withdrawal.remarks = reason || withdrawal.remarks;
     await withdrawal.save();
 
     const user = await User.findById(withdrawal.user);
@@ -167,6 +173,12 @@ export const declineWithdrawal = async (req) => {
         data: {
           firstName: user.firstName,
           reason: reason || 'No reason provided.',
+          withdrawalDetails: {
+            amount: withdrawal.amount,
+            brokerFee: withdrawal.brokerFee,
+            status: withdrawal.status,
+            createdAt: withdrawal.createdAt.toLocaleDateString(),
+          },
         },
       });
     }
@@ -293,7 +305,7 @@ export const markWithdrawalAsPaid = async (req) => {
       return { success: false, message: 'Withdrawal is already marked as successful.' };
     }
 
-    if (!withdrawal.paymentAccountDetails || withdrawal.paymentAccountDetails.trim() === "") {
+    if (!withdrawal.paymentAccountDetails || withdrawal.paymentAccountDetails === "") {
       return { success: false, message: 'Cannot mark withdrawal as successful without payment account details.' };
     }
 
@@ -417,5 +429,63 @@ export const deleteWithdrawal = async (req) => {
   } catch (error) {
     console.error('Error deleting withdrawal:', error);
     return { success: false, message: 'Internal server error.' };
+  }
+};
+
+
+
+// src/controllers/withdrawalsController.js
+
+// Cancel withdrawal
+export const cancelWithdrawal = async (req, res) => {
+  try {
+    const { withdrawalId } = req.params; // withdrawalId from path params
+    const { userId } = req.body; // userId from request body
+
+    // Validate required fields
+    if (!withdrawalId || !userId) {
+      return res.status(400).json({ error: 'Missing required fields: withdrawalId or userId.' });
+    }
+
+    // Validate ObjectId formats
+    if (!mongoose.Types.ObjectId.isValid(withdrawalId)) {
+      return res.status(400).json({ error: 'Invalid withdrawalId format.' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid userId format.' });
+    }
+
+    // Find the withdrawal by ID
+    const withdrawal = await Withdrawal.findById(withdrawalId);
+    if (!withdrawal) {
+      return res.status(404).json({ error: 'Withdrawal not found.' });
+    }
+
+    // Verify user ownership
+    if (withdrawal.user.toString() !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: User does not own this withdrawal.' });
+    }
+
+    // If the withdrawal is already processed or canceled, return an error
+    if (withdrawal.status === 'cancel') {
+      return res.status(400).json({ error: 'Withdrawal is already canceled.' });
+    }
+
+    if (withdrawal.status === 'approved' || withdrawal.status === 'processing' || withdrawal.status === 'successful') {
+      return res.status(400).json({ error: `Cannot cancel a withdrawal in status: ${withdrawal.status}.` });
+    }
+
+    // Change the withdrawal status to 'cancel'
+    withdrawal.status = 'cancel';
+    await withdrawal.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Withdrawal has been successfully canceled.',
+      withdrawalId: withdrawal._id,
+    });
+  } catch (error) {
+    console.error('Error canceling withdrawal:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 };

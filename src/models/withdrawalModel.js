@@ -14,7 +14,7 @@ const withdrawalSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'failed', 'processing', 'successful'],
+      enum: ['pending', 'approved', 'failed', 'processing', 'successful', 'canceled'],
       default: 'pending',
     },
     paymentAccountDetails: {

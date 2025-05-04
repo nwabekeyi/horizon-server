@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
         message: 'Invalid email address',
       },
     },
-    password: { type: String, required: true, minlength: 8 },
+    password: { type: String, required: true, minlength: 8, select: false },
     phone: { type: String },
     role: { type: String, enum: ['user'], default: 'user' },
     status: {
@@ -94,6 +94,7 @@ const userSchema = new mongoose.Schema(
     twoFA: {
       enabled: { type: Boolean, default: false },
       secret: { type: String },
+      token: { type: String, select: false }, // Newly added token field
     },
     referralCode: { type: String },
     referredBy: { type: String },
@@ -158,7 +159,7 @@ const adminSchema = new mongoose.Schema(
         message: 'Invalid email address',
       },
     },
-    password: { type: String, required: true, minlength: 8 },
+    password: { type: String, required: true, minlength: 8, select: false },
     phone: { type: String },
     role: { type: String, enum: ['admin', 'superadmin'], default: 'admin' },
     status: {

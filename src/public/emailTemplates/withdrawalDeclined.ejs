@@ -15,7 +15,7 @@
     .container {
       width: 100%;
       max-width: 600px;
-      margin: 0 auto;
+      margin: 30px auto;
       background-color: #fff;
       padding: 20px;
       border-radius: 8px;
@@ -35,6 +35,20 @@
     }
     .content p {
       margin: 10px 0;
+    }
+    .details-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .details-table th, .details-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .details-table th {
+      background-color: #f8f8f8;
+      color: #555;
     }
     .reason {
       font-size: 18px;
@@ -58,17 +72,37 @@
       <h1>247AT</h1>
     </div>
     <div class="content">
-      <p>Hi <%= name %>,</p>
-      <p>We regret to inform you that your recent withdrawal request has been declined.</p>
+      <p>Hi <%= firstName %>,</p>
+      <p>We regret to inform you that your recent withdrawal request has been declined. Below are the details:</p>
+      
+      <table class="details-table">
+        <tr>
+          <th>Amount</th>
+          <td>$<%= withdrawalDetails.amount %></td>
+        </tr>
+        <tr>
+          <th>Broker Fee</th>
+          <td>$<%= withdrawalDetails.brokerFee %></td>
+        </tr>
+        <tr>
+          <th>Status</th>
+          <td><%= withdrawalDetails.status %></td>
+        </tr>
+        <tr>
+          <th>Request Date</th>
+          <td><%= withdrawalDetails.createdAt %></td>
+        </tr>
+      </table>
+
       <div class="reason">
-        <%= reason %>
+        Reason: <%= reason %>
       </div>
       <p>If you believe this was a mistake or have any questions, please contact our support team for assistance.</p>
     </div>
     <div class="footer">
       <p>Best regards,</p>
       <p>The 247AT Team</p>
-      <p>&copy; <span id="current-year"></span> 247AT. All Rights Reserved.</p>
+      <p>© <span id="current-year"></span> 247AT. All Rights Reserved.</p>
     </div>
   </div>
 
