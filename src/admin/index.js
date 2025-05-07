@@ -1,8 +1,7 @@
-// src/admin/index.js
-import mongoose from 'mongoose';
 import path from 'path';
 import express from 'express';
 import session from 'express-session';
+import bcrypt from 'bcrypt';
 import { adminEmail, adminPassword, adminCookie } from '../configs/envConfig';
 import { Admin } from '../models/userModel';
 import AdminJS from 'adminjs';
@@ -13,8 +12,8 @@ import { adminResource } from './resources/admin.js';
 import { userResource } from './resources/user.js';
 import { brokerFeeResource } from './resources/brokerFee.js';
 import { withdrawalResource } from './resources/withdrawal.js';
-import { componentLoader } from './components.js';
-import paymentAccountResources from './resources/paymentAccount.js'
+import { componentLoader, Components } from './components.js'; // Updated import
+import paymentAccountResources from './resources/paymentAccount.js';
 export { componentLoader };
 
 export default async function setupAdminJS(app) {
@@ -23,23 +22,49 @@ export default async function setupAdminJS(app) {
 
     AdminJS.registerAdapter({ Database, Resource });
 
+    const topLevelResources = [
+      { ...paymentAccountResources, parent: null },
+      { ...transactionResource, parent: null },
+      { ...adminResource, parent: null },
+      { ...userResource, parent: null },
+      { ...brokerFeeResource, parent: null },
+      { ...withdrawalResource, parent: null },
+    ];
+
     const adminJsOptions = {
       databases: [],
       rootPath: '/admin',
-      resources: [paymentAccountResources, transactionResource, adminResource, userResource, brokerFeeResource, withdrawalResource],
+      resources: topLevelResources,
       componentLoader,
+      dashboard: {
+        component: Components.HomeLinkButton, // Add HomeLinkButton to dashboard
+      },
       branding: {
         companyName: '247AT',
         softwareBrothers: false,
-        logo: false,
-        favicon: false,
+        logo: '/assets/247trading.png',
+        favicon: '/admin/static/favicon.ico',
         theme: {
           colors: {
-            primary100: '#2c3e50',
-            accent: '#3498db',
-            hoverBg: '#ecf0f1',
+            primary100: '#0f4c81',
+            accent: '#2ecc71',
+            hoverBg: '#2a314f',
+            surface: '#252b47',
+            text: '#000000',
+            textLight: '#d0d0d0',
+            filterBackground: '#303558',
+          },
+          fonts: {
+            base: 'Inter, sans-serif',
+          },
+          fontWeights: {
+            normal: 400,
+            bold: 700,
           },
         },
+      },
+      assets: {
+        scripts: ['/admin/static/logo-redirect.js'], // Include logo-redirect.js
       },
       locale: {
         language: 'en',
@@ -51,6 +76,7 @@ export default async function setupAdminJS(app) {
               user: 'Users',
               BrokerFee: 'Broker Fee',
               Withdrawals: 'Withdrawals',
+              PaymentAccounts: 'Payment Accounts',
             },
             resources: {
               Transactions: {
@@ -188,7 +214,6 @@ export default async function setupAdminJS(app) {
     const adminJs = new AdminJS(adminJsOptions);
     console.log('AdminJS instance created');
 
-    // Enable watch in development to build frontend code
     if (process.env.NODE_ENV !== 'production') {
       console.log('Starting AdminJS watch for frontend bundling...');
       await adminJs.watch();
@@ -197,9 +222,14 @@ export default async function setupAdminJS(app) {
     const authenticate = async (email, password) => {
       console.log('Authenticating email:', email);
       try {
-        const admin = await Admin.findOne({ email }).maxTimeMS(5000);
-        if (!admin || password !== admin.password) {
-          console.log('Authentication failed: Invalid email or password');
+        const admin = await Admin.findOne({ email }).select('+password').maxTimeMS(5000);
+        if (!admin) {
+          console.log('Authentication failed: Admin not found');
+          return null;
+        }
+        const isPasswordValid = await bcrypt.compare(password, admin.password || '');
+        if (!isPasswordValid) {
+          console.log('Authentication failed: Invalid password');
           return null;
         }
         console.log('Authentication successful for:', email);
@@ -211,12 +241,15 @@ export default async function setupAdminJS(app) {
     };
 
     const existingAdmin = await Admin.findOne({ email: adminEmail }).maxTimeMS(5000);
+    const saltRounds = 10;
+    const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
+
     if (!existingAdmin) {
       await Admin.create({
         firstName: 'Default',
         lastName: 'Admin',
         email: adminEmail,
-        password: adminPassword,
+        password: hashedAdminPassword,
         role: 'superadmin',
         status: 'verified',
         permissions: {
@@ -227,10 +260,14 @@ export default async function setupAdminJS(app) {
           canSendNotifications: true,
         },
       });
-      console.log('Default admin user created');
-    } else if (existingAdmin.password !== adminPassword) {
-      await Admin.updateOne({ email: adminEmail }, { password: adminPassword });
-      console.log('Updated existing admin password');
+      console.log('Default admin user created with hashed password');
+    } else {
+      if (!existingAdmin.password || !(await bcrypt.compare(adminPassword, existingAdmin.password).catch(() => false))) {
+        await Admin.updateOne({ email: adminEmail }, { password: hashedAdminPassword });
+        console.log('Updated existing admin password with hashed password');
+      } else {
+        console.log('Existing admin password is up to date');
+      }
     }
 
     app.set('view engine', 'ejs');
@@ -242,7 +279,28 @@ export default async function setupAdminJS(app) {
         errorMessage: req.query.error || '',
         action: '/admin/login',
         companyName: '247AT',
-        currentYear: new Date().getYear(),
+        currentYear: new Date().getFullYear(),
+      });
+    });
+
+    app.get('/admin', (req, res) => {
+      if (!req.session.adminUser) {
+        console.log('Unauthorized access to /admin, redirecting to login');
+        return res.redirect('/admin/login?error=Please%20login%20to%20access%20the%20dashboard');
+      }
+      console.log('Rendering custom dashboard for:', req.session.adminUser.email);
+      res.render('admin/dashboard', {
+        admin: req.session.adminUser,
+        companyName: '247AT',
+        currentYear: new Date().getFullYear(),
+        resources: [
+          { name: 'Payment Accounts', path: '/admin/resources/PaymentAccount' },
+          { name: 'Transactions', path: '/admin/resources/Transaction' },
+          { name: 'Admins', path: '/admin/resources/admin' },
+          { name: 'Users', path: '/admin/resources/User' }, // Corrected path
+          { name: 'Broker Fee', path: '/admin/resources/BrokerFee' },
+          { name: 'Withdrawals', path: '/admin/resources/Withdrawals' },
+        ],
       });
     });
 
@@ -299,8 +357,9 @@ export default async function setupAdminJS(app) {
       res.redirect('/admin/login?error=Invalid%20email%20or%20password');
     });
 
+    app.use('/assets', express.static(path.join(path.dirname(import.meta.url), '../public/assets').replace('file:', '')));
     app.use('/admin/assets', express.static(path.join(path.dirname(import.meta.url), '../../node_modules/adminjs/lib/frontend/assets').replace('file:', '')));
-    app.use('/admin/custom-assets', express.static(path.join(path.dirname(import.meta.url), '../../public').replace('file:', '')));
+    app.use('/admin/static', express.static(path.join(path.dirname(import.meta.url), '../../public').replace('file:', '')));
 
     const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
       adminJs,

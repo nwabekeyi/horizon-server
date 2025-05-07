@@ -1,12 +1,11 @@
-// src/admin/components.js
 import { ComponentLoader } from 'adminjs';
-import path from 'path';
 
 const componentLoader = new ComponentLoader();
 
-// Register components
 const Components = {
-  ImageRenderer: componentLoader.add('ImageRenderer', path.resolve('src/admin/components/ImageRenderer.jsx')),
+  ImageRenderer: componentLoader.add('ImageRenderer', './components/ImageRenderer'),
+  HomeLinkButton: componentLoader.add('HomeLinkButton', './components/HomeLinkButton'),
+  PaymentAccountForm: componentLoader.add('PaymentAccountForm', './components/PaymentAccountForm'),
 };
 
 // Debug: Log component registrations

@@ -1,4 +1,3 @@
-import AdminJS from 'adminjs';
 import Transaction from '../../models/transactionModel';
 import { Components } from '../components.js';
 import { approveTransaction, declineTransaction, deleteTransaction } from '../../controllers/transactionsController';
@@ -109,7 +108,7 @@ export const transactionResource = {
       delete: {
         actionType: 'record',
         icon: 'Trash',
-        isVisible: true, // Visible for all transactions; can restrict with: (context) => context.record?.params.status !== 'completed'
+        isVisible: true,
         isAccessible: (context) => ['admin', 'superadmin'].includes(context.currentAdmin?.role),
         component: false,
         showInDrawer: false,
@@ -138,7 +137,7 @@ export const transactionResource = {
               throw new Error(result.message || 'Failed to delete transaction');
             }
 
-            const response = {
+            return {
               record: record.toJSON(currentAdmin),
               notice: {
                 message: result.message || 'Transaction deleted successfully',
@@ -149,8 +148,6 @@ export const transactionResource = {
                 actionName: 'list',
               }),
             };
-            console.log('Delete response:', response);
-            return response;
           } catch (err) {
             console.error('Delete handler error:', err.message);
             return {
@@ -182,34 +179,27 @@ export const transactionResource = {
               throw new Error('Unauthorized - Admin or Superadmin access required');
             }
 
+            // Create mock req object
             const req = {
               params: { transactionId: record.params.transactionId },
               session: { adminUser: currentAdmin },
             };
-            const res = {
-              status: (code) => ({
-                json: (data) => ({ code, data }),
-              }),
-            };
 
-            const result = await new Promise((resolve, reject) => {
-              approveTransaction[0](req, res, (err) => {
-                if (err) reject(err);
-                else resolve(res.status(200).json);
-              });
-            });
+            // Call controller directly
+            const result = await approveTransaction(req);
 
-            if (!result.data.success) {
-              throw new Error(result.data.message || 'Failed to approve transaction');
+            if (!result.success) {
+              throw new Error(result.message || 'Failed to approve transaction');
             }
 
+            // Update record status
             record.params.status = 'completed';
             await record.save();
 
-            const response = {
+            return {
               record: record.toJSON(currentAdmin),
               notice: {
-                message: result.data.message || 'Transaction approved successfully',
+                message: result.message || 'Transaction approved successfully',
                 type: 'success',
               },
               redirectUrl: h.recordActionUrl({
@@ -218,8 +208,6 @@ export const transactionResource = {
                 actionName: 'show',
               }),
             };
-            console.log('Approve response:', response);
-            return response;
           } catch (err) {
             console.error('Approve handler error:', err.message);
             return {
@@ -251,34 +239,27 @@ export const transactionResource = {
               throw new Error('Unauthorized - Admin or Superadmin access required');
             }
 
+            // Create mock req object
             const req = {
               params: { transactionId: record.params.transactionId },
               session: { adminUser: currentAdmin },
             };
-            const res = {
-              status: (code) => ({
-                json: (data) => ({ code, data }),
-              }),
-            };
 
-            const result = await new Promise((resolve, reject) => {
-              declineTransaction[0](req, res, (err) => {
-                if (err) reject(err);
-                else resolve(res.status(200).json);
-              });
-            });
+            // Call controller directly
+            const result = await declineTransaction(req);
 
-            if (!result.data.success) {
-              throw new Error(result.data.message || 'Failed to decline transaction');
+            if (!result.success) {
+              throw new Error(result.message || 'Failed to decline transaction');
             }
 
+            // Update record status
             record.params.status = 'failed';
             await record.save();
 
-            const response = {
+            return {
               record: record.toJSON(currentAdmin),
               notice: {
-                message: result.data.message || 'Transaction declined successfully',
+                message: result.message || 'Transaction declined successfully',
                 type: 'success',
               },
               redirectUrl: h.recordActionUrl({
@@ -287,8 +268,6 @@ export const transactionResource = {
                 actionName: 'show',
               }),
             };
-            console.log('Decline response:', response);
-            return response;
           } catch (err) {
             console.error('Decline handler error:', err.message);
             return {

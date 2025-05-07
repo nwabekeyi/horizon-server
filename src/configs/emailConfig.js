@@ -3,11 +3,10 @@ import ejs from 'ejs';
 import path from 'path';
 import { emailHost, emailPass, emailUser, emailPort } from './envConfig.js';
 
-// Log config for debugging
 
 // Create transporter with explicit SSL settings
 const transporter = nodemailer.createTransport({
-  host: emailHost, // 'mail.247activetrading.com'
+  host: emailHost,
   port: emailPort, // 465
   secure: true,    // Use implicit TLS for port 465
   auth: {
@@ -34,7 +33,7 @@ export const sendEmail = async ({ to, subject, template, data }) => {
     const html = await ejs.renderFile(templatePath, data);
 
     const mailOptions = {
-      from: `"247AT" <${emailUser}>`,
+      from: `"247AT Support" <${emailUser}>`,
       to,
       subject,
       html,

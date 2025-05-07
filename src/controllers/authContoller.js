@@ -39,7 +39,7 @@ export const registerUser = async (req, res) => {
     // Send verification email
     await sendEmail({
       to: email,
-      subject: 'Horizon - Verify Your Email',
+      subject:  'Verify Your Email',
       template: 'verification',
       data: {
         name: firstName,

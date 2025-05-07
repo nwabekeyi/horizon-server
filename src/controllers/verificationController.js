@@ -95,3 +95,66 @@ export const updateKYCStatus = async (req, res) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+/**
+ * Approve KYC for a user (sets kyc.status to verified)
+ */
+export const approveKYC = async (req) => {
+  try {
+    const { userId } = req.params;
+    console.log(`Approve KYC called for user: ${userId}`);
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`User not found: ${userId}`);
+      return { success: false, message: 'User not found' };
+    }
+
+    // Validate KYC documents
+    if (!user.kyc.documentFront || !user.kyc.documentBack || !user.kyc.addressProof) {
+      console.log(`Incomplete KYC documents for user: ${userId}`);
+      return { success: false, message: 'Incomplete KYC documents for verification' };
+    }
+
+    // Update KYC status
+    user.kyc.status = 'verified';
+    user.kyc.updatedAt = Date.now();
+
+    await user.save();
+    console.log(`KYC approved successfully for user: ${userId}`);
+    return { success: true, message: 'KYC approved successfully', userId };
+  } catch (err) {
+    console.error(`Error approving KYC: ${err.message}`);
+    return { success: false, message: `Server Error: ${err.message}` };
+  }
+};
+
+/**
+ * Decline KYC for a user (sets kyc.status to rejected)
+ */
+export const declineKYC = async (req) => {
+  try {
+    const { userId } = req.params;
+    console.log(`Decline KYC called for user: ${userId}`);
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`User not found: ${userId}`);
+      return { success: false, message: 'User not found' };
+    }
+
+    // Update KYC status
+    user.kyc.status = 'rejected';
+    user.kyc.updatedAt = Date.now();
+
+    await user.save();
+    console.log(`KYC declined successfully for user: ${userId}`);
+    return { success: true, message: 'KYC declined successfully', userId };
+  } catch (err) {
+    console.error(`Error declining KYC: ${err.message}`);
+    return { success: false, message: `Server Error: ${err.message}` };
+  }
+};

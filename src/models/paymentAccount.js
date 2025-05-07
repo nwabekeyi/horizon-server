@@ -1,11 +1,10 @@
-// models/PaymentAccount.ts
-import mongoose, { Schema, Document, model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const PaymentAccountSchema = new Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false, // Changed from true to false to make userId optional
       ref: 'User',
     },
     currency: {
@@ -26,8 +25,9 @@ const PaymentAccountSchema = new Schema(
   { timestamps: true }
 );
 
-// ✅ Add this compound unique index:
-PaymentAccountSchema.index({ userId: 1, currency: 1 }, { unique: true });
+// Remove the unique index on { userId, currency } since userId is optional
+// If you still want to enforce uniqueness for accounts with a userId, keep the index but allow null userId
+PaymentAccountSchema.index({ userId: 1, currency: 1 }, { unique: true, partialFilterExpression: { userId: { $exists: true } } });
 
 // Validation for required fields
 PaymentAccountSchema.pre('save', function (next) {

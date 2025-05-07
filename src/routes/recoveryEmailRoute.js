@@ -2,7 +2,8 @@ import express from 'express';
 import {
   getRecoveryEmail,
   setRecoveryEmail,
-  removeRecoveryEmail
+  removeRecoveryEmail,
+  initiateAccountRecovery 
 } from '../controllers/recoveryEmailController.js'; // Adjust path if needed
 import { apiVersion } from '../utils/constants.js';
 
@@ -123,6 +124,65 @@ router.delete(`${apiVersion}/users/:userId/recovery-email`, (req, res, next) => 
   console.log(`DELETE ${apiVersion}/users/:userId/recovery-email called`);
   console.log('Params:', req.params);
   removeRecoveryEmail(req, res, next);
+});
+
+/**
+ * @swagger
+ * /api/v1/auth/recover-account:
+ *   post:
+ *     summary: Initiate account recovery
+ *     description: Sends recovery information (temporary password and 2FA secret) to the user's recovery email.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Recovery information sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Recovery information sent to your recovery email
+ *       400:
+ *         description: Invalid email or recovery email not set
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: Recovery email not set
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post(`${apiVersion}/auth/recover-account`, (req, res, next) => {
+  console.log(`POST ${apiVersion}/auth/recover-account called`);
+  console.log('Body:', req.body);
+  initiateAccountRecovery(req, res, next);
 });
 
 export default router;

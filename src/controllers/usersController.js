@@ -51,6 +51,7 @@ export const createUser = async (req, res) => {
     const welcomeMessage = `Hello ${firstName}, your account has been successfully created. Welcome to our platform!`;
 
     res.status(201).json({
+      success: true,
       user: {
         id: user._id,
         firstName: user.firstName,

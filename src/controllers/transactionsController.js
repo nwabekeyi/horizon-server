@@ -213,7 +213,7 @@ export const deleteTransaction = async (req) => {
     // Delete proof image from Cloudinary if it exists
     if (proofUrl) {
       try {
-        await deleteFromCloudinary(proofUrl); // Placeholder: Implement this function
+        await deleteFromCloudinary(proofUrl); // Ensure this function is implemented
       } catch (cloudinaryError) {
         console.error('Failed to delete proof image from Cloudinary:', cloudinaryError.message);
         // Continue execution, as image deletion failure shouldn’t block transaction deletion
@@ -265,166 +265,164 @@ export const getUserTransactions = async (req, res) => {
 /**
  * Approve a transaction
  */
-export const approveTransaction = [
-  async (req, res, next) => {
-    const { transactionId } = req.params;
 
-    try {
-      console.log('Approve transaction called for:', transactionId);
-      console.log('Session data:', req.session);
 
-      // Find transaction
-      const transaction = await Transaction.findOne({ transactionId });
-      if (!transaction) {
-        console.log('Transaction not found:', transactionId);
-        return res.status(404).json({ success: false, message: 'Transaction not found' });
-      }
-      if (transaction.status !== 'pending') {
-        console.log('Transaction is not pending:', transaction.status);
-        return res.status(400).json({ success: false, message: 'Transaction is not pending' });
-      }
+export const approveTransaction = async (req) => {
+  const { transactionId } = req.params;
 
-      // Calculate USD equivalent of the transaction amount
-      let usdAmount;
-      if (transaction.currencyType === 'fiat') {
-        const supportedFiatCurrencies = ['USD', 'CAD', 'EUR', 'GBP'];
-        if (!supportedFiatCurrencies.includes(transaction.fiatCurrency)) {
-          console.log('Unsupported fiat currency:', transaction.fiatCurrency);
-          return res.status(400).json({
-            success: false,
-            message: `Unsupported fiat currency: ${transaction.fiatCurrency}. Supported currencies: USD, CAD, EUR, GBP`,
-          });
-        }
+  try {
+    console.log('Approve transaction called for:', transactionId);
+    console.log('Session data:', req.session);
 
-        if (transaction.fiatCurrency === 'USD') {
-          usdAmount = transaction.amount;
-        } else {
-          const response = await axios.get(
-            `https://api.freecurrencyapi.com/v1/latest?base_currency=${transaction.fiatCurrency}¤cies=USD`,
-            {
-              headers: {
-                apikey: freeCurrencyApiKey,
-              },
-            }
-          );
-
-          if (!response.data?.data?.USD) {
-            console.log('Failed to fetch exchange rate from FreeCurrencyAPI');
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to fetch exchange rate from FreeCurrencyAPI',
-            });
-          }
-
-          const rate = response.data.data.USD;
-          usdAmount = transaction.amount * rate;
-          usdAmount = Number(usdAmount.toFixed(2));
-        }
-      } else if (transaction.currencyType === 'crypto') {
-        const cryptoIdMap = {
-          btc: 'bitcoin',
-          eth: 'ethereum',
-          usdt: 'tether',
-        };
-        const cryptoId = cryptoIdMap[transaction.cryptoCurrency];
-        if (!cryptoId) {
-          console.log('Unsupported cryptocurrency:', transaction.cryptoCurrency);
-          return res.status(400).json({ success: false, message: 'Unsupported cryptocurrency' });
-        }
-
-        const response = await axios.get(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`
-        );
-        if (!response.data[cryptoId]?.usd) {
-          console.log('Failed to fetch crypto price from CoinGecko');
-          return res.status(500).json({
-            success: false,
-            message: 'Failed to fetch cryptocurrency price from CoinGecko',
-          });
-        }
-        const cryptoPrice = response.data[cryptoId].usd;
-        usdAmount = transaction.amount * cryptoPrice;
-        usdAmount = Number(usdAmount.toFixed(2));
-      } else {
-        console.log('Invalid currency type:', transaction.currencyType);
-        return res.status(400).json({ success: false, message: 'Invalid currency type' });
-      }
-
-      // Update transaction status to completed
-      transaction.status = 'completed';
-      transaction.updatedAt = Date.now();
-      await transaction.save();
-
-      // Update user's investments and account balance
-      const user = await User.findById(transaction.userId);
-      if (!user) {
-        console.log('User not found:', transaction.userId);
-        return res.status(404).json({ success: false, message: 'User not found' });
-      }
-
-      // Add to investments array
-      user.investments.push({
-        transactionId: transaction._id,
-        amountInvested: usdAmount, // Store in USD
-        roi: 0,
-      });
-
-      // Update totalInvestment (sum of all amountInvested in USD)
-      user.totalInvestment = user.investments.reduce((sum, inv) => sum + (inv.amountInvested || 0), 0);
-
-      // Update totalROI (sum of all roi, unchanged since new investment has roi: 0)
-      user.totalROI = user.investments.reduce((sum, inv) => sum + (inv.roi || 0), 0);
-
-      // Update accountBalance by adding the USD equivalent
-      user.accountBalance = (user.accountBalance || 0) + usdAmount;
-
-      await user.save();
-
-      console.log('Transaction approved successfully:', transactionId);
-      res.status(200).json({ success: true, message: 'Transaction approved', transaction });
-    } catch (err) {
-      console.error('Error approving transaction:', err.message);
-      res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+    // Find transaction
+    const transaction = await Transaction.findOne({ transactionId });
+    if (!transaction) {
+      console.log('Transaction not found:', transactionId);
+      return { success: false, message: 'Transaction not found' };
     }
-  },
-];
+    if (transaction.status !== 'pending') {
+      console.log('Transaction is not pending:', transaction.status);
+      return { success: false, message: 'Transaction is not pending' };
+    }
+
+    // Calculate USD equivalent of the transaction amount
+    let usdAmount;
+    if (transaction.currencyType === 'fiat') {
+      const supportedFiatCurrencies = ['USD', 'CAD', 'EUR', 'GBP'];
+      if (!supportedFiatCurrencies.includes(transaction.fiatCurrency)) {
+        console.log('Unsupported fiat currency:', transaction.fiatCurrency);
+        return {
+          success: false,
+          message: `Unsupported fiat currency: ${transaction.fiatCurrency}. Supported currencies: USD, CAD, EUR, GBP`,
+        };
+      }
+
+      if (transaction.fiatCurrency === 'USD') {
+        usdAmount = transaction.amount;
+      } else {
+        const response = await axios.get(
+          `https://api.freecurrencyapi.com/v1/latest?base_currency=${transaction.fiatCurrency}¤cies=USD`,
+          {
+            headers: {
+              apikey: freeCurrencyApiKey,
+            },
+          }
+        );
+
+        if (!response.data?.data?.USD) {
+          console.log('Failed to fetch exchange rate from FreeCurrencyAPI');
+          return {
+            success: false,
+            message: 'Failed to fetch exchange rate from FreeCurrencyAPI',
+          };
+        }
+
+        const rate = response.data.data.USD;
+        usdAmount = transaction.amount * rate;
+        usdAmount = Number(usdAmount.toFixed(2));
+      }
+    } else if (transaction.currencyType === 'crypto') {
+      const cryptoIdMap = {
+        btc: 'bitcoin',
+        eth: 'ethereum',
+        usdt: 'tether',
+      };
+      const cryptoId = cryptoIdMap[transaction.cryptoCurrency];
+      if (!cryptoId) {
+        console.log('Unsupported cryptocurrency:', transaction.cryptoCurrency);
+        return { success: false, message: 'Unsupported cryptocurrency' };
+      }
+
+      const response = await axios.get(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`
+      );
+      if (!response.data[cryptoId]?.usd) {
+        console.log('Failed to fetch crypto price from CoinGecko');
+        return {
+          success: false,
+          message: 'Failed to fetch cryptocurrency price from CoinGecko',
+        };
+      }
+      const cryptoPrice = response.data[cryptoId].usd;
+      usdAmount = transaction.amount * cryptoPrice;
+      usdAmount = Number(usdAmount.toFixed(2));
+    } else {
+      console.log('Invalid currency type:', transaction.currencyType);
+      return { success: false, message: 'Invalid currency type' };
+    }
+
+    // Update transaction status to completed
+    transaction.status = 'completed';
+    transaction.updatedAt = Date.now();
+    await transaction.save();
+
+    // Update user's investments and account balance
+    const user = await User.findById(transaction.userId);
+    if (!user) {
+      console.log('User not found:', transaction.userId);
+      return { success: false, message: 'User not found' };
+    }
+
+    // Add to investments array
+    user.investments.push({
+      transactionId: transaction._id,
+      amountInvested: usdAmount, // Store in USD
+      roi: 0,
+    });
+
+    // Update totalInvestment (sum of all amountInvested in USD)
+    user.totalInvestment = user.investments.reduce((sum, inv) => sum + (inv.amountInvested || 0), 0);
+
+    // Update totalROI (sum of all roi, unchanged since new investment has roi: 0)
+    user.totalROI = user.investments.reduce((sum, inv) => sum + (inv.roi || 0), 0);
+
+    // Update accountBalance by adding the USD equivalent
+    user.accountBalance = (user.accountBalance || 0) + usdAmount;
+
+    await user.save();
+
+    console.log('Transaction approved successfully:', transactionId);
+    return { success: true, message: 'Transaction approved successfully', transaction };
+  } catch (err) {
+    console.error('Error approving transaction:', err.message);
+    return { success: false, message: `Server Error: ${err.message}` };
+  }
+};
+
 
 /**
  * Decline a transaction
  */
-export const declineTransaction = [
-  async (req, res, next) => {
-    const { transactionId } = req.params;
+export const declineTransaction = async (req) => {
+  const { transactionId } = req.params;
 
-    try {
-      console.log('Decline transaction called for:', transactionId);
-      console.log('Session data:', req.session);
+  try {
+    console.log('Decline transaction called for:', transactionId);
+    console.log('Session data:', req.session);
 
-
-      // Find transaction
-      const transaction = await Transaction.findOne({ transactionId });
-      if (!transaction) {
-        console.log('Transaction not found:', transactionId);
-        return res.status(404).json({ success: false, message: 'Transaction not found' });
-      }
-      if (transaction.status !== 'pending') {
-        console.log('Transaction is not pending:', transaction.status);
-        return res.status(400).json({ success: false, message: 'Transaction is not pending' });
-      }
-
-      // Update transaction status to failed
-      transaction.status = 'failed';
-      transaction.updatedAt = Date.now();
-      await transaction.save();
-
-      console.log('Transaction declined successfully:', transactionId);
-      res.status(200).json({ success: true, message: 'Transaction declined', transaction });
-    } catch (err) {
-      console.error('Error declining transaction:', err.message);
-      res.status(500).json({ success: false, message: `Server Error: ${err.message}` });
+    // Find transaction
+    const transaction = await Transaction.findOne({ transactionId });
+    if (!transaction) {
+      console.log('Transaction not found:', transactionId);
+      return { success: false, message: 'Transaction not found' };
     }
-  },
-];
+    if (transaction.status !== 'pending') {
+      console.log('Transaction is not pending:', transaction.status);
+      return { success: false, message: 'Transaction is not pending' };
+    }
+
+    // Update transaction status to failed
+    transaction.status = 'failed';
+    transaction.updatedAt = Date.now();
+    await transaction.save();
+
+    console.log('Transaction declined successfully:', transactionId);
+    return { success: true, message: 'Transaction declined successfully', transaction };
+  } catch (err) {
+    console.error('Error declining transaction:', err.message);
+    return { success: false, message: `Server Error: ${err.message}` };
+  }
+};
 
 
 /**

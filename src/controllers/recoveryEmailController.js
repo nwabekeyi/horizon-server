@@ -1,8 +1,73 @@
-import { User } from '../models/userModel.js'; // Adjust path if needed
+import { User } from '../models/userModel.js';
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+import { sendEmail } from '../configs/emailConfig.js';
 
 // Helper: Check valid MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+// Generate a random temporary password
+const generateTempPassword = () => {
+  return Math.random().toString(36).slice(-8); // Simple 8-character random string
+};
+
+// POST initiate account recovery
+export const initiateAccountRecovery = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing email address' });
+  }
+
+  try {
+    // Find user by primary email
+    const user = await User.findOne({ email }).select('+password +twoFA.secret');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Check if recovery email exists and has length > 0
+    if (!user.recoveryEmail || user.recoveryEmail.length < 1) {
+      return res.status(400).json({ success: false, error: 'Recovery email not set' });
+    }
+
+    // Generate a temporary password
+    const tempPassword = generateTempPassword();
+    const saltRounds = 10;
+    const hashedTempPassword = await bcrypt.hash(tempPassword, saltRounds);
+
+    // Update user with temporary password and mark it as requiring reset
+    user.password = hashedTempPassword;
+    user.mustResetPassword = true; // Ensure this field exists in your schema
+    await user.save();
+
+    // Prepare recovery data
+    const recoveryData = {
+      email: user.email,
+      tempPassword, // Send plaintext temporary password
+    };
+
+    // Send recovery email to recoveryEmail
+    await sendEmail({
+      to: user.recoveryEmail,
+      subject: 'Account Recovery - 247 Active Trading',
+      template: 'recovery',
+      data: {
+        firstName: user.firstName,
+        email: recoveryData.email,
+        tempPassword: recoveryData.tempPassword,
+        twoFASecret: recoveryData.twoFASecret, // Include 2FA secret as requested
+        recoveryDate: new Date().toLocaleString(),
+      },
+    });
+
+    res.status(200).json({ success: true, message: 'Recovery information sent to your recovery email' });
+  } catch (err) {
+    console.error('Error initiating account recovery:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
 
 // GET recovery email
 export const getRecoveryEmail = async (req, res) => {
