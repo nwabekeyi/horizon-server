@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "This is a server project for horizon crypto web application",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js",
-    "DBupsert": "node src/models/upsertDB.js"
+    "start": "node --experimental-specifier-resolution=node server.js",
+    "DBupsert": "node src/models/upsertDB.js",
+    "dev": "nodemon --experimental-specifier-resolution=node server.js"
   },
   "author": "Chidiebere Nwabekeyi",
   "license": "ISC",
@@ -19,7 +21,6 @@
     "body-parser": "^2.2.0",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
@@ -34,8 +35,14 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.10.0",
     "nodemon": "^3.1.9",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0"
   }
 }

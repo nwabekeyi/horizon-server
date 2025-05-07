@@ -1,11 +1,14 @@
-const Withdrawal = require('../models/withdrawalModel');
-const bcrypt = require('bcrypt');
-const { sendEmail } = require('../configs/emailConfig');
-const { User } = require('../models/userModel');
-const createMulter = require('../configs/multerConfig');
-const BrokerFee = require('../models/brokersFeeModel');
+// src/controllers/withdrawalsController.js
+import Withdrawal from '../models/withdrawalModel.js';
+import bcrypt from 'bcrypt';
+import { sendEmail } from '../configs/emailConfig.js';
+import { User } from '../models/userModel.js';
+import createMulter from '../configs/multerConfig.js';
+import BrokerFee from '../models/brokersFeeModel.js';
+import { deleteFromCloudinary } from '../configs/cloudinaryConfig.js';
+import mongoose from 'mongoose';
 
-const requestWithdrawal = async (req, res) => {
+export const requestWithdrawal = async (req, res) => {
   const brokerFeeProofUpload = createMulter("broker_fee_proofs", "png").single("brokerFeeProof");
 
   brokerFeeProofUpload(req, res, async (err) => {
@@ -85,20 +88,18 @@ const requestWithdrawal = async (req, res) => {
   });
 };
 
-
-
 // Approve withdrawal
-const approveWithdrawalRequest = async (req, res) => {
+export const approveWithdrawal = async (req) => {
   try {
     const { withdrawalId } = req.params;
     const withdrawal = await Withdrawal.findById(withdrawalId);
 
     if (!withdrawal) {
-      return res.status(404).json({ error: 'Withdrawal request not found.' });
+      return { success: false, message: 'Withdrawal request not found.' };
     }
 
     if (withdrawal.status === 'approved') {
-      return res.status(400).json({ error: 'Withdrawal has already been approved.' });
+      return { success: false, message: 'Withdrawal has already been approved.' };
     }
 
     const rawPin = Math.floor(1000 + Math.random() * 9000).toString();
@@ -110,7 +111,7 @@ const approveWithdrawalRequest = async (req, res) => {
 
     const user = await User.findById(withdrawal.user);
     if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
+      return { success: false, message: 'User not found.' };
     }
 
     await sendEmail({
@@ -120,106 +121,201 @@ const approveWithdrawalRequest = async (req, res) => {
       data: {
         firstName: user.firstName,
         rawPin: rawPin,
+        withdrawalDetails: {
+          amount: withdrawal.amount,
+          brokerFee: withdrawal.brokerFee,
+          status: withdrawal.status,
+          createdAt: withdrawal.createdAt.toLocaleDateString(),
+        },
       },
     });
 
-    res.status(200).json({
+    return {
+      success: true,
       message: 'Withdrawal approved and email sent successfully.',
       withdrawalId: withdrawal._id,
-    });
+    };
   } catch (error) {
     console.error('Error approving withdrawal request:', error);
-    res.status(500).json({ error: 'Internal server error.' });
+    return { success: false, message: 'Internal server error.' };
   }
 };
 
-// Make withdrawal
-const makeWithdrawal = async (req, res) => {
-  const { withdrawalId, userId, paymentAccountDetails, withdrawalPin } = req.body;
+// Decline withdrawal
+export const declineWithdrawal = async (req) => {
+  try {
+    const { withdrawalId } = req.params;
+    const { reason } = req.body;
 
+    const withdrawal = await Withdrawal.findById(withdrawalId);
+    if (!withdrawal) {
+      return { success: false, message: 'Withdrawal request not found.' };
+    }
+
+    if (withdrawal.status === 'declined') {
+      return { success: false, message: 'Withdrawal is already declined.' };
+    }
+
+    if (withdrawal.status === 'successful') {
+      return { success: false, message: 'Cannot decline a completed withdrawal.' };
+    }
+
+    withdrawal.status = 'declined';
+    withdrawal.remarks = reason || withdrawal.remarks;
+    await withdrawal.save();
+
+    const user = await User.findById(withdrawal.user);
+    if (user) {
+      await sendEmail({
+        to: user.email,
+        subject: 'Withdrawal Request Declined',
+        template: 'withdrawalDeclined',
+        data: {
+          firstName: user.firstName,
+          reason: reason || 'No reason provided.',
+          withdrawalDetails: {
+            amount: withdrawal.amount,
+            brokerFee: withdrawal.brokerFee,
+            status: withdrawal.status,
+            createdAt: withdrawal.createdAt.toLocaleDateString(),
+          },
+        },
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Withdrawal request declined.',
+      withdrawalId: withdrawal._id,
+    };
+  } catch (error) {
+    console.error('Error declining withdrawal request:', error);
+    return { success: false, message: 'Internal server error.' };
+  }
+};
+
+
+// Make withdrawal
+export const makeWithdrawal = async (req, res) => {
+  const { withdrawalId, userId, paymentAccountDetails, withdrawalPin } = req.body;
+  // Validate required fields
   if (!withdrawalId || !userId || !paymentAccountDetails || !withdrawalPin) {
-    return res.status(400).json({ error: 'Missing required fields.' });
+    return res.status(400).json({ error: 'Missing required fields: withdrawalId, userId, paymentAccountDetails, or withdrawalPin.' });
+  }
+
+  // Validate ObjectId formats
+  if (!mongoose.Types.ObjectId.isValid(withdrawalId)) {
+    return res.status(400).json({ error: 'Invalid withdrawalId format.' });
+  }
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ error: 'Invalid userId format.' });
+  }
+
+  // Validate withdrawalPin is a string
+  if (typeof withdrawalPin !== 'string') {
+    return res.status(400).json({ error: 'withdrawalPin must be a string.' });
   }
 
   try {
+    // Find the withdrawal by ID
     const withdrawal = await Withdrawal.findById(withdrawalId);
     if (!withdrawal) {
       return res.status(404).json({ error: 'Withdrawal not found.' });
     }
 
-    if (withdrawal.user.toString() !== userId) {
-      return res.status(403).json({ error: 'Unauthorized: user mismatch.' });
+    // Verify user ownership
+    if (!withdrawal.user || withdrawal.user.toString() !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: User does not own this withdrawal.' });
     }
 
-    // Check if withdrawalPin exists
-    if (!withdrawal.withdrawalPin) {
-      return res.status(400).json({ error: 'No withdrawal PIN set for this withdrawal.' });
+    // Check if withdrawal is in approved state
+    if (withdrawal.status !== 'approved') {
+      return res.status(400).json({ error: `Withdrawal must be in approved status to process. Current status: ${withdrawal.status}.` });
     }
 
-    if (withdrawal.withdrawalPin === 0) {
-      return res.status(400).json({ error: 'Inavlid withdrawal, no withdrawal pin available in database' });
+    // Check if withdrawalPin exists and is valid
+    if (!withdrawal.withdrawalPin || withdrawal.withdrawalPin === '0') {
+      return res.status(400).json({ error: 'No valid withdrawal PIN set for this withdrawal.' });
     }
 
-    const isPinValid = await bcrypt.compare(withdrawalPin, withdrawal.withdrawalPin);
+    // Validate withdrawal pin using bcrypt
+    let isPinValid;
+    try {
+      isPinValid = await bcrypt.compare(withdrawalPin, withdrawal.withdrawalPin);
+    } catch (bcryptError) {
+      console.error('Bcrypt comparison error:', bcryptError);
+      return res.status(500).json({ error: 'Error validating withdrawal PIN.' });
+    }
+
     if (!isPinValid) {
       return res.status(401).json({ error: 'Invalid withdrawal PIN.' });
     }
 
+    // Verify user exists and has sufficient balance
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    if (user.accountBalance < withdrawal.amount) {
+    if (typeof user.accountBalance !== 'number' || user.accountBalance < withdrawal.amount) {
       return res.status(400).json({ error: 'Insufficient account balance.' });
     }
 
-    // Update the withdrawal details
+    // Update withdrawal details
     withdrawal.paymentAccountDetails = paymentAccountDetails;
     withdrawal.status = 'processing';
+    withdrawal.withdrawalPin = '0'; // Clear the pin after successful validation
 
-    // Set withdrawalPin to null after successful validation
-    withdrawal.withdrawalPin = 0;
-
-    // Save the updated withdrawal object
+    // Save the updated withdrawal
     await withdrawal.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Withdrawal is now processing.',
       withdrawalId: withdrawal._id,
     });
   } catch (error) {
-    console.error('Error processing withdrawal:', error);
-    res.status(500).json({ error: 'Internal server error.' });
+    // Detailed error logging for debugging
+    console.error('Error processing withdrawal:', {
+      error: error.message,
+      stack: error.stack,
+      withdrawalId,
+      userId,
+    });
+
+    // Specific error handling for known issues
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ error: 'Database error. Please try again later.' });
+    }
+
+    return res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
-
-// ✅ Mark withdrawal as successful
-const markWithdrawalAsPaid = async (req, res) => {
+// Mark withdrawal as successful
+export const markWithdrawalAsPaid = async (req) => {
   try {
     const { withdrawalId } = req.params;
 
     const withdrawal = await Withdrawal.findById(withdrawalId);
     if (!withdrawal) {
-      return res.status(404).json({ error: 'Withdrawal not found.' });
+      return { success: false, message: 'Withdrawal not found.' };
     }
 
     if (withdrawal.status === 'successful') {
-      return res.status(400).json({ error: 'Withdrawal is already marked as successful.' });
+      return { success: false, message: 'Withdrawal is already marked as successful.' };
     }
 
-    if (!withdrawal.paymentAccountDetails || withdrawal.paymentAccountDetails.trim() === "") {
-      return res.status(400).json({ error: 'Cannot mark withdrawal as successful without payment account details.' });
+    if (!withdrawal.paymentAccountDetails || withdrawal.paymentAccountDetails === "") {
+      return { success: false, message: 'Cannot mark withdrawal as successful without payment account details.' };
     }
 
     const user = await User.findById(withdrawal.user);
     if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
+      return { success: false, message: 'User not found.' };
     }
 
     if (user.accountBalance < withdrawal.amount) {
-      return res.status(400).json({ error: 'User has insufficient balance for this withdrawal.' });
+      return { success: false, message: 'User has insufficient balance for this withdrawal.' };
     }
 
     // Subtract the withdrawal amount from user account balance
@@ -229,33 +325,35 @@ const markWithdrawalAsPaid = async (req, res) => {
     withdrawal.status = 'successful';
     await withdrawal.save();
 
-    res.status(200).json({
+    return {
+      success: true,
       message: 'Withdrawal marked as successful and user balance updated.',
       withdrawalId: withdrawal._id,
-    });
+    };
   } catch (error) {
     console.error('Error marking withdrawal as paid:', error);
-    res.status(500).json({ error: 'Internal server error.' });
+    return { success: false, message: 'Internal server error.' };
   }
 };
 
-
-
-// ✅ Get withdrawals by userId
-const getWithdrawalsByUserId = async (req, res) => {
+// Get withdrawals by userId
+export const getWithdrawalsByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const withdrawals = await Withdrawal.find({ user: userId }).sort({ createdAt: -1 });
+    const withdrawals = await Withdrawal.find({ user: userId })
+      .sort({ createdAt: -1 }) // optional: newest first
+
     res.status(200).json({ withdrawals });
   } catch (error) {
-    console.error('Error fetching withdrawals:', error);
+    console.error('Error fetching withdrawals by userId:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
-// ✅ Get all withdrawals (admin or system view)
-const getAllWithdrawals = async (req, res) => {
+
+// Get all withdrawals (admin or system view)
+export const getAllWithdrawals = async (req, res) => {
   try {
     const withdrawals = await Withdrawal.find()
       .populate('user', 'firstName lastName email') // optional: populate user info
@@ -268,57 +366,8 @@ const getAllWithdrawals = async (req, res) => {
   }
 };
 
-
-// Decline withdrawal
-const declineWithdrawalRequest = async (req, res) => {
-  try {
-    const { withdrawalId } = req.params;
-    const { reason } = req.body; // Optional: allow admins to add a reason for decline
-
-    const withdrawal = await Withdrawal.findById(withdrawalId);
-    if (!withdrawal) {
-      return res.status(404).json({ error: 'Withdrawal request not found.' });
-    }
-
-    if (withdrawal.status === 'declined') {
-      return res.status(400).json({ error: 'Withdrawal is already declined.' });
-    }
-
-    if (withdrawal.status === 'successful') {
-      return res.status(400).json({ error: 'Cannot decline a completed withdrawal.' });
-    }
-
-    withdrawal.status = 'declined';
-    withdrawal.remarks = reason || withdrawal.remarks; // append reason if provided
-    await withdrawal.save();
-
-    const user = await User.findById(withdrawal.user);
-    if (user) {
-      await sendEmail({
-        to: user.email,
-        subject: 'Withdrawal Request Declined',
-        template: 'withdrawalDeclined', // ensure this template exists
-        data: {
-          firstName: user.firstName,
-          reason: reason || 'No reason provided.',
-        },
-      });
-    }
-
-    res.status(200).json({
-      message: 'Withdrawal request declined.',
-      withdrawalId: withdrawal._id,
-    });
-  } catch (error) {
-    console.error('Error declining withdrawal request:', error);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
-
-
 // Get withdrawal by ID
-const getWithdrawalById = async (req, res) => {
+export const getWithdrawalById = async (req, res) => {
   try {
     const { id } = req.params;
     const withdrawal = await Withdrawal.findById(id).populate('user', 'firstName lastName email');
@@ -333,7 +382,7 @@ const getWithdrawalById = async (req, res) => {
 };
 
 // Update withdrawal
-const updateWithdrawal = async (req, res) => {
+export const updateWithdrawal = async (req, res) => {
   try {
     const { id } = req.params;
     const { amount, method } = req.body;
@@ -352,30 +401,91 @@ const updateWithdrawal = async (req, res) => {
 };
 
 // Delete withdrawal
-const deleteWithdrawal = async (req, res) => {
+export const deleteWithdrawal = async (req) => {
   try {
-    const { id } = req.params;
-    const withdrawal = await Withdrawal.findByIdAndDelete(id);
+    const { withdrawalId } = req.params;
+
+    const withdrawal = await Withdrawal.findById(withdrawalId);
     if (!withdrawal) {
-      return res.status(404).json({ error: 'Withdrawal not found.' });
+      console.log('Withdrawal not found:', withdrawalId);
+      return { success: false, message: 'Withdrawal not found.' };
     }
-    res.status(200).json({ message: 'Withdrawal deleted successfully.' });
+
+    // Delete brokerFeeProof from Cloudinary if it exists
+    if (withdrawal.brokerFeeProof) {
+      try {
+        await deleteFromCloudinary(withdrawal.brokerFeeProof);
+      } catch (cloudinaryError) {
+        console.error('Error deleting brokerFeeProof from Cloudinary:', cloudinaryError);
+        // Continue execution, as image deletion failure shouldn’t block withdrawal deletion
+      }
+    }
+
+    // Delete the withdrawal document from DB
+    await Withdrawal.findByIdAndDelete(withdrawalId);
+
+    console.log('Withdrawal deleted successfully:', withdrawalId);
+    return { success: true, message: 'Withdrawal deleted successfully.' };
   } catch (error) {
     console.error('Error deleting withdrawal:', error);
-    res.status(500).json({ error: 'Internal server error.' });
+    return { success: false, message: 'Internal server error.' };
   }
 };
 
-module.exports = {
-  requestWithdrawal,
-  approveWithdrawal: approveWithdrawalRequest,
-  declineWithdrawal: declineWithdrawalRequest,
-  getWithdrawalById, // Add this
-  updateWithdrawal,  // Add this
-  deleteWithdrawal,  // Add this
-  makeWithdrawal,
-  markWithdrawalAsPaid,
-  getWithdrawalsByUserId,
-  getAllWithdrawals,
-};
 
+
+// src/controllers/withdrawalsController.js
+
+// Cancel withdrawal
+export const cancelWithdrawal = async (req, res) => {
+  try {
+    const { withdrawalId } = req.params; // withdrawalId from path params
+    const { userId } = req.body; // userId from request body
+
+    // Validate required fields
+    if (!withdrawalId || !userId) {
+      return res.status(400).json({ error: 'Missing required fields: withdrawalId or userId.' });
+    }
+
+    // Validate ObjectId formats
+    if (!mongoose.Types.ObjectId.isValid(withdrawalId)) {
+      return res.status(400).json({ error: 'Invalid withdrawalId format.' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid userId format.' });
+    }
+
+    // Find the withdrawal by ID
+    const withdrawal = await Withdrawal.findById(withdrawalId);
+    if (!withdrawal) {
+      return res.status(404).json({ error: 'Withdrawal not found.' });
+    }
+
+    // Verify user ownership
+    if (withdrawal.user.toString() !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: User does not own this withdrawal.' });
+    }
+
+    // If the withdrawal is already processed or canceled, return an error
+    if (withdrawal.status === 'cancel') {
+      return res.status(400).json({ error: 'Withdrawal is already canceled.' });
+    }
+
+    if (withdrawal.status === 'approved' || withdrawal.status === 'processing' || withdrawal.status === 'successful') {
+      return res.status(400).json({ error: `Cannot cancel a withdrawal in status: ${withdrawal.status}.` });
+    }
+
+    // Change the withdrawal status to 'cancel'
+    withdrawal.status = 'cancel';
+    await withdrawal.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Withdrawal has been successfully canceled.',
+      withdrawalId: withdrawal._id,
+    });
+  } catch (error) {
+    console.error('Error canceling withdrawal:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};

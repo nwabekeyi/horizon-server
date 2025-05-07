@@ -1,18 +1,12 @@
-const nodemailer = require("nodemailer");
-const ejs = require("ejs");
-const path = require("path");
-const {
-  emailHost,
-  emailPass,
-  emailUser,
-  emailPort
-} = require('./envConfig');
+import nodemailer from 'nodemailer';
+import ejs from 'ejs';
+import path from 'path';
+import { emailHost, emailPass, emailUser, emailPort } from './envConfig.js';
 
-// Log config for debugging
 
 // Create transporter with explicit SSL settings
 const transporter = nodemailer.createTransport({
-  host: emailHost, // 'mail.247activetrading.com'
+  host: emailHost,
   port: emailPort, // 465
   secure: true,    // Use implicit TLS for port 465
   auth: {
@@ -33,13 +27,13 @@ transporter.verify((error, success) => {
 });
 
 // Send email using EJS template
-const sendEmail = async ({ to, subject, template, data }) => {
+export const sendEmail = async ({ to, subject, template, data }) => {
   try {
-    const templatePath = path.join(__dirname, `../public/emailTemplates/${template}.ejs`);
+    const templatePath = path.join(process.cwd(), 'src', 'public', 'emailTemplates', `${template}.ejs`);
     const html = await ejs.renderFile(templatePath, data);
 
     const mailOptions = {
-      from: `"Horizon App" <${emailUser}>`,
+      from: `"247AT Support" <${emailUser}>`,
       to,
       subject,
       html,
@@ -65,5 +59,3 @@ const sendEmail = async ({ to, subject, template, data }) => {
 // };
 
 // testSMTPConnection();
-
-module.exports = { sendEmail };

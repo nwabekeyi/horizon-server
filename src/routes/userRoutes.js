@@ -1,8 +1,7 @@
-const express = require('express');
-const authorize = require('../middlewares/authorizationMiddleware');
-const { createUser, addAccountDetails, updateUser, deleteUser, getUsers, getUser } = require('../controllers/usersController');
-const { apiVersion } = require('../utils/constants');
-
+import express from 'express';
+import authorize from '../middlewares/authorizationMiddleware';
+import { createUser, addAccountDetails, updateUser, deleteUser, getUsers, getUser } from '../controllers/usersController';
+import { apiVersion } from '../utils/constants';
 const router = express.Router();
 
 console.log('User Routes - API Version:', apiVersion);
@@ -381,4 +380,4 @@ router.get(`${apiVersion}/users/:id/accountdetails`, (req, res, next) => {
 });
 
 
-module.exports = router;
+export default router;

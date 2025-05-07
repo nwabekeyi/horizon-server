@@ -1,5 +1,5 @@
-const { User } = require('../models/userModel');
-const createMulter = require('../configs/multerConfig'); // adjust path if needed
+import { User } from '../models/userModel.js';
+import createMulter from '../configs/multerConfig.js'; // adjust path if needed
 
 // Multer for uploading up to 3 KYC files
 const uploadKYC = createMulter('png').fields([
@@ -9,7 +9,7 @@ const uploadKYC = createMulter('png').fields([
 ]);
 
 // 1. User submits KYC documents (with file uploads)
-const submitKYC = async (req, res) => {
+export const submitKYC = async (req, res) => {
   uploadKYC(req, res, async (err) => {
     if (err) {
       console.error('Multer error:', err);
@@ -67,7 +67,7 @@ const submitKYC = async (req, res) => {
 };
 
 // 2. Admin updates KYC status (unchanged)
-const updateKYCStatus = async (req, res) => {
+export const updateKYCStatus = async (req, res) => {
   try {
     const { userId, status } = req.body;
 
@@ -96,7 +96,65 @@ const updateKYCStatus = async (req, res) => {
   }
 };
 
-module.exports = {
-  submitKYC,
-  updateKYCStatus,
+
+/**
+ * Approve KYC for a user (sets kyc.status to verified)
+ */
+export const approveKYC = async (req) => {
+  try {
+    const { userId } = req.params;
+    console.log(`Approve KYC called for user: ${userId}`);
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`User not found: ${userId}`);
+      return { success: false, message: 'User not found' };
+    }
+
+    // Validate KYC documents
+    if (!user.kyc.documentFront || !user.kyc.documentBack || !user.kyc.addressProof) {
+      console.log(`Incomplete KYC documents for user: ${userId}`);
+      return { success: false, message: 'Incomplete KYC documents for verification' };
+    }
+
+    // Update KYC status
+    user.kyc.status = 'verified';
+    user.kyc.updatedAt = Date.now();
+
+    await user.save();
+    console.log(`KYC approved successfully for user: ${userId}`);
+    return { success: true, message: 'KYC approved successfully', userId };
+  } catch (err) {
+    console.error(`Error approving KYC: ${err.message}`);
+    return { success: false, message: `Server Error: ${err.message}` };
+  }
+};
+
+/**
+ * Decline KYC for a user (sets kyc.status to rejected)
+ */
+export const declineKYC = async (req) => {
+  try {
+    const { userId } = req.params;
+    console.log(`Decline KYC called for user: ${userId}`);
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`User not found: ${userId}`);
+      return { success: false, message: 'User not found' };
+    }
+
+    // Update KYC status
+    user.kyc.status = 'rejected';
+    user.kyc.updatedAt = Date.now();
+
+    await user.save();
+    console.log(`KYC declined successfully for user: ${userId}`);
+    return { success: true, message: 'KYC declined successfully', userId };
+  } catch (err) {
+    console.error(`Error declining KYC: ${err.message}`);
+    return { success: false, message: `Server Error: ${err.message}` };
+  }
 };

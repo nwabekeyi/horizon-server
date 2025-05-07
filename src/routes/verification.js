@@ -1,6 +1,7 @@
-const express = require('express');
-const { submitKYC, updateKYCStatus } = require('../controllers/verificationController'); // Adjust path to your actual controller
-const { apiVersion } = require('../utils/constants');
+import express from 'express';
+import { submitKYC, updateKYCStatus } from '../controllers/verificationController'; // Adjust path to your actual controller
+import { apiVersion } from '../utils/constants';
+
 const router = express.Router();
 
 console.log('KYC Routes - API Version:', apiVersion);
@@ -167,4 +168,4 @@ router.patch(`${apiVersion}/kyc/update-status`, (req, res, next) => {
   updateKYCStatus(req, res, next);
 });
 
-module.exports = router;
+export default router;

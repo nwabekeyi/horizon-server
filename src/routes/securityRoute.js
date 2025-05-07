@@ -1,19 +1,19 @@
 // routes/twoFARoutes.js
-const express = require('express');
-const {
+import express from 'express';
+import {
   setupTwoFA,
   verifyTwoFASecret,
   requestTwoFAUpdate,
   confirmTwoFAUpdate,
   disableTwoFA,
-} = require('../securities/twoFactorAuth');
-const { apiVersion } = require('../utils/constants');
+} from '../securities/twoFactorAuth';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/v1/twofa/setup:
+ * /api/v1/twofa/enable:
  *   post:
  *     summary: Enable two-factor authentication (2FA)
  *     description: Sets up 2FA for the user by providing a secret.
@@ -43,7 +43,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post(`${apiVersion}/twofa/setup`, (req, res, next) => {
+router.post(`${apiVersion}/twofa/enable`, (req, res, next) => {
   if (!req.user) req.user = {};
   req.user.userId = req.body.userId;
   setupTwoFA(req, res, next);
@@ -156,7 +156,7 @@ router.post(`${apiVersion}/twofa/request-update`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.put(`${apiVersion}/twofa/confirm-update/:token`, confirmTwoFAUpdate);
+router.put(`${apiVersion}/twofa/confirm-update`, confirmTwoFAUpdate);
 
 /**
  * @swagger
@@ -190,4 +190,7 @@ router.delete(`${apiVersion}/twofa/disable`, (req, res, next) => {
   disableTwoFA(req, res, next);
 });
 
-module.exports = router;
+
+
+
+export default router;

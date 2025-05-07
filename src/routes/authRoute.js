@@ -1,7 +1,6 @@
-const express = require('express');
-const { loginUser, registerUser, sendPasswordResetLink, resetPassword } = require('../controllers/authContoller'); // Fixed typo: authContoller -> authController
-const { apiVersion } = require('../utils/constants');
-
+import express from 'express';
+import { loginUser, confirmPassword, registerUser, sendPasswordResetLink, resetPassword } from '../controllers/authContoller'; // Fixed typo: authContoller -> authController
+import { apiVersion } from '../utils/constants';
 const router = express.Router();
 
 console.log('Auth Routes - API Version:', apiVersion);
@@ -287,4 +286,43 @@ router.patch(`${apiVersion}/auth/reset-password`, (req, res, next) => {
   resetPassword(req, res, next);
 });
 
-module.exports = router;
+/**
+ * @swagger
+ * /api/v1/auth/confirm-password:
+ *   post:
+ *     summary: Confirm password
+ *     description: Disables 2FA and removes secret after verifying the password.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - password
+ *             properties:
+ *                userId:
+ *                  type: string
+ *                  example: 67f1407f0ebe023c867e0396
+ *                password:
+ *                  type: string
+ *                  example: "user_password_example"
+ *     responses:
+ *       200:
+ *         description: password confirmed
+ *       400:
+ *         description: Invalid password or user not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post(`${apiVersion}/auth/confirm-password`, (req, res, next) => {
+  if (!req.user) req.user = {};
+  req.user.userId = req.body.userId;
+  req.user.password = req.body.password;  // Now accepting password as well
+  confirmPassword(req, res, next);
+});
+
+export default router;

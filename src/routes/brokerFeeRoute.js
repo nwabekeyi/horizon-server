@@ -1,13 +1,9 @@
-const express = require('express');
-const {
-  getBrokerFee,
-  updateBrokerFee,
-} = require('../controllers/brokersFeeController');
-const { apiVersion } = require('../utils/constants');
+import express from 'express';
+import { getBrokerFee, updateBrokerFee } from '../controllers/brokersFeeController';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
-console.log('Broker Fee Routes - API Version:', apiVersion);
 
 /**
  * @swagger
@@ -87,4 +83,4 @@ router.get(`${apiVersion}/broker-fee`, getBrokerFee);
  */
 router.put(`${apiVersion}/broker-fee`, updateBrokerFee);
 
-module.exports = router;
+export default router;

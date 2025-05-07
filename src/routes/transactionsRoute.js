@@ -1,15 +1,14 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   createTransaction,
   getUserTransactions,
   getTransactions,
   updateTransaction,
   deleteTransaction,
   processPayment,
-  approveTransaction,
-  declineTransaction,
-} = require('../controllers/transantionsController');
-const { apiVersion } = require('../utils/constants');
+  cancelTransaction
+} from '../controllers/transactionsController';
+import { apiVersion } from '../utils/constants';
 
 const router = express.Router();
 
@@ -512,104 +511,25 @@ router.delete(`${apiVersion}/transactions/:id`, (req, res, next) => {
   deleteTransaction(req, res, next);
 });
 
-/**
- * @swagger
- * /api/v1/transactions/approve/{transactionId}:
- *   patch:
- *     summary: Approve a transaction
- *     description: Updates the status of a pending transaction to 'completed' and adds it to the user's investments array. Restricted to admins with appropriate permissions.
- *     tags:
- *       - Transactions
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: transactionId
- *         required: true
- *         schema:
- *           type: string
- *         description: Transaction's unique ID
- *     responses:
- *       200:
- *         description: Transaction successfully approved
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Transaction approved"
- *                 transaction:
- *                   type: object
- *                   properties:
- *                     companyName:
- *                       type: string
- *                       example: "TechCorp"
- *                     transactionId:
- *                       type: string
- *                       example: "550e8400-e29b-41d4-a716-446655440000"
- *                     userId:
- *                       type: string
- *                       example: "user123"
- *                     status:
- *                       type: string
- *                       example: "completed"
- *                     amount:
- *                       type: number
- *                       example: 100
- *                     currencyType:
- *                       type: string
- *                       example: "fiat"
- *                     cryptoCurrency:
- *                       type: string
- *                       example: null
- *                     transactionDetails:
- *                       type: object
- *                       additionalProperties:
- *                         type: string
- *                       example: {"bankName": "Bank A"}
- *                     proofUrl:
- *                       type: string
- *                       example: "https://res.cloudinary.com/yourcloud/image/upload/v1234567890/proof.jpg"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *       400:
- *         description: Transaction is not pending
- *       403:
- *         description: Unauthorized - Insufficient permissions
- *       404:
- *         description: Transaction or user not found
- *       500:
- *         description: Internal server error
- */
-router.patch(`${apiVersion}/transactions/approve/:transactionId`, ...approveTransaction);
 
 /**
  * @swagger
- * /api/v1/transactions/decline/{transactionId}:
- *   patch:
- *     summary: Decline a transaction
- *     description: Updates the status of a pending transaction to 'failed'. Restricted to admins with appropriate permissions.
+ * /api/v1/transactions/cancel/{id}:
+ *   post:
+ *     summary: Cancel a transaction
+ *     description: Updates the transaction status to 'cancelled' for a given transaction ID.
  *     tags:
  *       - Transactions
  *     parameters:
  *       - in: path
- *         name: transactionId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Transaction's unique ID
+ *         description: The transaction's unique ID
  *     responses:
  *       200:
- *         description: Transaction successfully declined
+ *         description: Transaction successfully cancelled
  *         content:
  *           application/json:
  *             schema:
@@ -618,9 +538,6 @@ router.patch(`${apiVersion}/transactions/approve/:transactionId`, ...approveTran
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Transaction declined"
  *                 transaction:
  *                   type: object
  *                   properties:
@@ -635,7 +552,7 @@ router.patch(`${apiVersion}/transactions/approve/:transactionId`, ...approveTran
  *                       example: "user123"
  *                     status:
  *                       type: string
- *                       example: "failed"
+ *                       example: "cancelled"
  *                     amount:
  *                       type: number
  *                       example: 100
@@ -656,18 +573,23 @@ router.patch(`${apiVersion}/transactions/approve/:transactionId`, ...approveTran
  *                     createdAt:
  *                       type: string
  *                       format: date-time
+ *                       example: "2025-04-08T12:00:00Z"
  *                     updatedAt:
  *                       type: string
  *                       format: date-time
+ *                       example: "2025-04-08T12:00:00Z"
  *       400:
- *         description: Transaction is not pending
- *       403:
- *         description: Unauthorized - Insufficient permissions
+ *         description: Invalid transaction ID or transaction already completed/failed
  *       404:
  *         description: Transaction not found
  *       500:
  *         description: Internal server error
  */
-router.patch(`${apiVersion}/transactions/decline/:transactionId`, ...declineTransaction);
+router.post(`${apiVersion}/transactions/cancel/:id`, (req, res, next) => {
+  console.log(`POST ${apiVersion}/transactions/cancel/${req.params.id} called`);
+  // Call the cancelTransaction function to handle the cancellation logic
+  cancelTransaction(req, res, next);
+});
 
-module.exports = router;
+
+export default router;

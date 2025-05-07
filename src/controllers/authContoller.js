@@ -1,9 +1,10 @@
-const bcrypt = require('bcrypt');
-const { User } = require('../models/userModel');
-const RegistrationPin = require('../models/registrationPinModel');
-const { sendEmail } = require('../configs/emailConfig');
-const { signJwt, verifyJwt } = require('../utils/JWTconfig');
-const {prodUrl} = require('../configs/envConfig')
+// authController
+import bcrypt from 'bcrypt';
+import { User } from '../models/userModel';
+import RegistrationPin from '../models/registrationPinModel';
+import { sendEmail } from '../configs/emailConfig';
+import { signJwt, verifyJwt } from '../utils/JWTconfig';
+import { prodUrl } from '../configs/envConfig';
 
 // Generate a random 4-digit PIN
 const generatePin = () => {
@@ -11,7 +12,7 @@ const generatePin = () => {
 };
 
 // Register user (generate and send PIN)
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   console.log('Register User Request Body:', req.body);
   const { email, firstName } = req.body || {};
 
@@ -38,7 +39,7 @@ const registerUser = async (req, res) => {
     // Send verification email
     await sendEmail({
       to: email,
-      subject: 'Horizon - Verify Your Email',
+      subject:  'Verify Your Email',
       template: 'verification',
       data: {
         name: firstName,
@@ -68,7 +69,7 @@ const registerUser = async (req, res) => {
 };
 
 // Login user
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   console.log('Login Request Body:', req.body);
   const { email, password } = req.body || {};
 
@@ -80,7 +81,7 @@ const loginUser = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email }).lean(); // use lean() for plain JS object
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -96,7 +97,19 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const { password: _, ...userWithoutPassword } = user; // remove password
+    // 2FA check
+    if (user.twoFA?.enabled) {
+      return res.status(200).json({
+        success: true,
+        message: '2FA required',
+        twoFA: {
+          userId: user._id,
+          enabled: true
+        }
+      });
+    }
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
 
     const payload = {
       id: user._id,
@@ -109,7 +122,7 @@ const loginUser = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: userWithoutPassword, // full user object minus password
+      user: userWithoutPassword,
     });
   } catch (error) {
     console.error('Error during login:', error);
@@ -122,13 +135,14 @@ const loginUser = async (req, res) => {
 };
 
 
+
 // Generate password reset token (valid for 1 hour)
 const generatePasswordResetToken = (userId) => {
   return signJwt({ userId }, '1h'); // Token expires in 1 hour
 };
 
 // Send password reset link via email
-const sendPasswordResetLink = async (req, res) => {
+export const sendPasswordResetLink = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -179,7 +193,7 @@ const sendPasswordResetLink = async (req, res) => {
 };
 
 // Reset password after validating the token
-const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
 
   if (!token || !newPassword) {
@@ -225,4 +239,29 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, sendPasswordResetLink, resetPassword };
+
+// Confirm Password
+export const confirmPassword = async (req, res) => {
+  const { userId, password } = req.body;
+
+  if (!userId || !password) {
+    return res.status(400).json({ success: false, message: 'User ID and password are required' });
+  }
+
+  try {
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Password confirmed successfully' });
+  } catch (error) {
+    console.error('Error confirming password:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};

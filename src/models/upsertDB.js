@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const { dbUrl } = require('../configs/envConfig'); // Adjust path to envConfig
-const { User } = require('./userModel'); // Adjust path to your userModel.js
+import mongoose from 'mongoose';
+import { dbUrl } from '../configs/envConfig.js'; // Adjust path
+import { User } from './userModel.js'; // Adjust path
 
 const MONGO_URI = dbUrl;
 
@@ -28,14 +28,13 @@ const disconnectDB = async () => {
   }
 };
 
-// Migration script to add recoveryEmail and clean up paymentDetails
+// Migration script to add recoveryEmail, clean up paymentDetails, and set empty twoFA.token
 const migrateUserRecoveryEmail = async () => {
   await connectDB();
 
-  console.log('Starting migration to add recoveryEmail field and clean up paymentDetails...');
+  console.log('Starting migration to add recoveryEmail, clean paymentDetails, and init twoFA.token...');
 
   try {
-    // Find all users
     const users = await User.find({});
 
     let updatedCount = 0;
@@ -44,21 +43,27 @@ const migrateUserRecoveryEmail = async () => {
       let modified = false;
 
       // Add recoveryEmail if missing
-      if (!user.recoveryEmail && user.recoveryEmail !== null) {
+      if (user.recoveryEmail === undefined) {
         user.recoveryEmail = null;
         modified = true;
       }
 
-      // Clean up paymentDetails: Remove entries missing type or currency
-      if (user.paymentDetails && user.paymentDetails.length > 0) {
-        const validPaymentDetails = user.paymentDetails.filter((pd) => {
-          return pd.type && pd.currency; // Keep only entries with type and currency
-        });
-
+      // Clean up paymentDetails
+      if (user.paymentDetails?.length) {
+        const validPaymentDetails = user.paymentDetails.filter((pd) => pd.type && pd.currency);
         if (validPaymentDetails.length !== user.paymentDetails.length) {
           user.paymentDetails = validPaymentDetails;
           modified = true;
         }
+      }
+
+      // Ensure twoFA object and token
+      if (!user.twoFA) {
+        user.twoFA = { enabled: false, secret: undefined, token: '' };
+        modified = true;
+      } else if (user.twoFA.token === undefined) {
+        user.twoFA.token = '';
+        modified = true;
       }
 
       if (modified) {
@@ -67,7 +72,7 @@ const migrateUserRecoveryEmail = async () => {
       }
     }
 
-    console.log(`Migration complete: ${updatedCount} user documents updated.`);
+    console.log(`✅ Migration complete: ${updatedCount} user documents updated.`);
   } catch (error) {
     console.error('❌ Error during migration:', error);
     process.exit(1);

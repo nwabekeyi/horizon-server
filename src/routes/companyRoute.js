@@ -1,5 +1,6 @@
-const express = require('express');
-const {
+import express from 'express';
+import { check } from 'express-validator';
+import {
   getAllCompanies,
   getCompanyById,
   createCompany,
@@ -8,12 +9,11 @@ const {
   subscribeToCompany,
   getCompaniesByIndustry,
   getAllIndustries
-} = require('../controllers/companyController');
-const { apiVersion } = require('../utils/constants');
-const { check } = require('express-validator');
+} from '../controllers/companyController';
+import { apiVersion } from '../utils/constants';
+
 const router = express.Router();
 
-console.log('Company Routes - API Version:', apiVersion);
 
 const companyValidation = [
   check('name').notEmpty().withMessage('Name is required'),
@@ -276,4 +276,4 @@ router.get(`${apiVersion}/companies/industries/:industry`, (req, res, next) => {
   getCompaniesByIndustry(req, res, next);
 });
 
-module.exports = router;
+export default router;

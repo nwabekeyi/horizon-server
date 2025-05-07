@@ -1,4 +1,4 @@
-const RegistrationPin = require('../../models/registrationPinModel');
+import RegistrationPin from '../../models/registrationPinModel';
 
 const registrationPinResource = {
   resource: RegistrationPin,
@@ -15,4 +15,4 @@ const registrationPinResource = {
   },
 };
 
-module.exports = registrationPinResource;
+export default registrationPinResource;

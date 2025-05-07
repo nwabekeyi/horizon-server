@@ -1,4 +1,4 @@
-const { verifyJwt } = require('../utils/JWTconfig');
+import { verifyJwt } from '../utils/JWTconfig';
 
 const authorize = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
@@ -16,5 +16,4 @@ const authorize = (req, res, next) => {
   next();
 };
 
-
-module.exports = authorize;
+export default authorize;
