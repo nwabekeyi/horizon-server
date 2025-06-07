@@ -1,4 +1,5 @@
 import Company from '../../models/companyModel.js';
+import { componentLoader, Components } from '../components.js';
 
 const companyResource = {
   resource: Company,
@@ -6,7 +7,15 @@ const companyResource = {
     properties: {
       name: { isVisible: { list: true, edit: true, filter: true, show: true } },
       description: { isVisible: { list: false, edit: true, filter: false, show: true } },
-      industry: { isVisible: { list: true, edit: true, filter: true, show: true } },
+      industry: {
+        isVisible: { list: true, edit: true, filter: true, show: true },
+        type: 'string', // Treat as string since it stores the industry name
+        components: {
+          edit: Components.IndustrySelect, // Custom component for edit view
+          filter: Components.IndustrySelect, // Custom component for filter view
+          show: Components.IndustryDisplay, // Custom component for show view
+        },
+      },
       location: { isVisible: { list: true, edit: true, filter: true, show: true } },
       logoUrl: { isVisible: { list: false, edit: true, filter: false, show: true } },
       establishedYear: { isVisible: { list: true, edit: true, filter: true, show: true } },

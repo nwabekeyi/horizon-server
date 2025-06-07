@@ -12,8 +12,9 @@ import { adminResource } from './resources/admin.js';
 import { userResource } from './resources/user.js';
 import { brokerFeeResource } from './resources/brokerFee.js';
 import { withdrawalResource } from './resources/withdrawal.js';
-import companyResource from './resources/company.js'; // Import companyResource
-import paymentAccountResources from './resources/paymentAccount.js';
+import companyResource from './resources/company.js';
+import paymentAccountResource from './resources/paymentAccount.js';
+import industryResource from './resources/industries.js';
 import { componentLoader, Components } from './components.js';
 
 export { componentLoader };
@@ -22,16 +23,21 @@ export default async function setupAdminJS(app) {
   try {
     console.log('Starting AdminJS setup...');
 
+    // Add body-parsing middleware for POST requests
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
     AdminJS.registerAdapter({ Database, Resource });
 
     const topLevelResources = [
-      { ...paymentAccountResources, parent: null },
+      { ...paymentAccountResource, parent: null },
       { ...transactionResource, parent: null },
       { ...adminResource, parent: null },
       { ...userResource, parent: null },
       { ...brokerFeeResource, parent: null },
       { ...withdrawalResource, parent: null },
-      { ...companyResource, parent: null }, // Add companyResource
+      { ...companyResource, parent: null },
+      { ...industryResource, parent: null },
     ];
 
     const adminJsOptions = {
@@ -39,6 +45,13 @@ export default async function setupAdminJS(app) {
       rootPath: '/admin',
       resources: topLevelResources,
       componentLoader,
+      components: {
+        IndustrySelect: Components.IndustrySelect,
+        IndustryDisplay: Components.IndustryDisplay,
+        ImageRenderer: Components.ImageRenderer,
+        HomeLinkButton: Components.HomeLinkButton,
+        PaymentAccountForm: Components.PaymentAccountForm,
+      },
       dashboard: {
         component: Components.HomeLinkButton,
       },
@@ -68,10 +81,9 @@ export default async function setupAdminJS(app) {
       },
       assets: {
         scripts: [
+          // Removed potentially problematic scripts
           '/admin/static/logo-redirect.js',
-          '/admin/static/admin/bundle.js',
-          '/admin/static/admin/entry.js',
-          '/admin/static/admin/.entry.js',
+          // AdminJS bundle is handled automatically
         ],
       },
       locale: {
@@ -85,7 +97,8 @@ export default async function setupAdminJS(app) {
               BrokerFee: 'Broker Fee',
               Withdrawals: 'Withdrawals',
               PaymentAccounts: 'Payment Accounts',
-              Company: 'Companies', // Add label for Company resource
+              Company: 'Companies',
+              Industry: 'Industries',
             },
             resources: {
               Transactions: {
@@ -151,7 +164,6 @@ export default async function setupAdminJS(app) {
                   'wallets.currency': 'Wallet Currency',
                   'wallets.address': 'Wallet Address',
                   'wallets.balance': 'Wallet Balance',
-                  'paymentDetails.currency': 'Payment Currency',
                   'paymentDetails.accountDetails.bankName': 'Bank Name',
                   'paymentDetails.accountDetails.accountNumber': 'Account Number',
                   'paymentDetails.accountDetails.accountName': 'Account Name',
@@ -215,7 +227,6 @@ export default async function setupAdminJS(app) {
                 },
               },
               Company: {
-                // Add translations for Company resource
                 properties: {
                   _id: 'ID',
                   name: 'Name',
@@ -238,6 +249,21 @@ export default async function setupAdminJS(app) {
                   show: 'View Company',
                 },
               },
+              Industry: {
+                properties: {
+                  _id: 'ID',
+                  industry: 'Industry Name',
+                  createdAt: 'Created At',
+                  updatedAt: 'Updated At',
+                },
+                actions: {
+                  new: 'Create New Industry',
+                  edit: 'Edit Industry',
+                  delete: 'Delete Industry',
+                  list: 'List Industries',
+                  show: 'View Industry',
+                },
+              },
             },
           },
         },
@@ -249,7 +275,7 @@ export default async function setupAdminJS(app) {
 
     if (process.env.NODE_ENV !== 'production') {
       console.log('Starting AdminJS watch for frontend bundling...');
-      await adminJs.watch();
+      await adminJs.watch({ verbose: true });
     }
 
     const authenticate = async (email, password) => {
@@ -333,8 +359,21 @@ export default async function setupAdminJS(app) {
           { name: 'Users', path: '/admin/resources/User' },
           { name: 'Broker Fee', path: '/admin/resources/BrokerFee' },
           { name: 'Withdrawals', path: '/admin/resources/Withdrawals' },
-          { name: 'Companies', path: '/admin/resources/Company' }, // Add Companies to dashboard
+          { name: 'Companies', path: '/admin/resources/Company' },
+          { name: 'Industries', path: '/admin/resources/Industry' },
         ],
+      });
+    });
+
+    app.get('/admin/logout', (req, res) => {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Logout error:', err);
+          res.status(500).send('Logout error');
+          return;
+        }
+        console.log('Logged out, redirecting to /admin/login');
+        res.redirect('/admin/login');
       });
     });
 
@@ -353,7 +392,7 @@ export default async function setupAdminJS(app) {
     );
 
     app.use((req, res, next) => {
-      console.log('Incoming request:', req.url, 'Session:', req.session);
+      console.log('Incoming request:', req.url, 'Session:', req.session, 'Body:', req.body);
       res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; " +
@@ -373,13 +412,17 @@ export default async function setupAdminJS(app) {
     app.post('/admin/login', async (req, res) => {
       const { email, password } = req.body;
       console.log('Login attempt:', email);
+      if (!email || !password) {
+        console.log('Login failed: Missing email or password');
+        return res.redirect('/admin/login?error=Missing%20email%20or%20password');
+      }
       const admin = await authenticate(email, password);
       if (admin) {
         req.session.adminUser = admin;
         req.session.save((err) => {
           if (err) {
             console.error('Session save error:', err);
-            res.status(500).send('Session error');
+            res.status(500).json({ status: 500, message: 'Session error' });
             return;
           }
           console.log('Session saved, redirecting to /admin');
@@ -402,7 +445,6 @@ export default async function setupAdminJS(app) {
         cookieName: 'adminjs',
         cookiePassword: adminCookie || 'fallback-secret-247at',
         loginPath: '/admin/login',
-        logoutPath: '/admin/logout',
       },
       null,
       {
@@ -416,18 +458,6 @@ export default async function setupAdminJS(app) {
         },
       }
     );
-
-    app.get('/admin/logout', (req, res) => {
-      req.session.destroy((err) => {
-        if (err) {
-          console.error('Logout error:', err);
-          res.status(500).send('Logout error');
-          return;
-        }
-        console.log('Logged out, redirecting to /admin/login');
-        res.redirect('/admin/login');
-      });
-    });
 
     app.use('/admin', adminRouter);
     console.log('AdminJS routes mounted at /admin');

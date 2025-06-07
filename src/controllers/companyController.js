@@ -146,10 +146,8 @@ export const deleteCompany = async (req, res) => {
 };
 
 export const getAllIndustries = async (req, res) => {
-  console.log('GET /api/v1/companies/industries - Request received');
   try {
     const companies = await Company.find().select('industry');
-    console.log('Companies fetched:', companies.length);
 
     if (!companies || companies.length === 0) {
       console.log('No companies found in the database');
