@@ -1,5 +1,4 @@
-import AdminJS from 'adminjs';
-import Withdrawal from '../../models/withdrawalModel';
+import Withdrawal from '../../models/withdrawalModel.js';
 import { Components } from '../components.js';
 import { approveWithdrawal, declineWithdrawal, markWithdrawalAsPaid, deleteWithdrawal } from '../../controllers/withdrawalController.js';
 

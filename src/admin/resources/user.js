@@ -5,17 +5,17 @@ import { approveKYC, declineKYC } from '../../controllers/verificationController
 // Edit before hook: Detect kyc.status changes and call appropriate KYC controller
 const editBeforeHook = async (request, context) => {
   const { record, currentAdmin } = context;
-  console.log(`Before edit for user: ${record.params._id} by admin: ${currentAdmin?.email}`);
+
+  console.log(`Before edit for user: ${record?.params?._id} by admin: ${currentAdmin?.email}`);
 
   if (request.method === 'post' && request.payload) {
     const newKycStatus = request.payload['kyc.status'];
-    const originalKycStatus = record.params.kyc.status;
+    const originalKycStatus = record?.params?.kyc?.status;
 
-    // Check if kyc.status changed
     if (newKycStatus && newKycStatus !== originalKycStatus) {
       console.log(`KYC status change detected: ${originalKycStatus} -> ${newKycStatus}`);
       const req = {
-        params: { userId: record.params._id },
+        params: { userId: record?.params?._id },
       };
 
       try {
@@ -30,8 +30,7 @@ const editBeforeHook = async (request, context) => {
             throw new Error(result.message);
           }
         }
-        // No action for 'pending'
-        // Ensure payload reflects the updated kyc.status
+
         request.payload['kyc.status'] = newKycStatus;
       } catch (err) {
         throw new Error(`KYC update failed: ${err.message}`);
@@ -45,7 +44,8 @@ const editBeforeHook = async (request, context) => {
 // Edit after hook: Log changes and customize message
 const editAfterHook = async (originalResponse, request, context) => {
   const { record, currentAdmin } = context;
-  console.log(`After edit for user: ${record.params._id} by admin: ${currentAdmin?.email}`, {
+
+  console.log(`After edit for user: ${record?.params?._id} by admin: ${currentAdmin?.email}`, {
     response: originalResponse,
   });
 
@@ -123,15 +123,19 @@ export const userResource = {
       'paymentDetails.currency': { isVisible: { list: true, edit: true, filter: true, show: true } },
       'paymentDetails.accountDetails.bankName': {
         isVisible: { list: true, edit: true, filter: true, show: true },
+        isRequired: false,
       },
       'paymentDetails.accountDetails.accountNumber': {
         isVisible: { list: true, edit: true, filter: true, show: true },
+        isRequired: false,
       },
       'paymentDetails.accountDetails.accountName': {
         isVisible: { list: true, edit: true, filter: true, show: true },
+        isRequired: false,
       },
       'paymentDetails.accountDetails.address': {
         isVisible: { list: true, edit: true, filter: true, show: true },
+        isRequired: false,
       },
       'investments.companyName': { isVisible: { list: true, edit: true, filter: true, show: true } },
       'investments.amountInvested': { isVisible: { list: true, edit: true, filter: true, show: true } },

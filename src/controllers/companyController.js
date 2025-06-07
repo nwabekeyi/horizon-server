@@ -1,6 +1,6 @@
-import Company from '../models/companyModel';
+import Company from '../models/companyModel.js';
 import { validationResult } from 'express-validator';
-import {User} from '../models/userModel';
+import {User} from '../models/userModel.js';
 
 export const subscribeToCompany = async (req, res) => {
   const { companyId, userId, amount, currencyType } = req.body;
@@ -146,10 +146,8 @@ export const deleteCompany = async (req, res) => {
 };
 
 export const getAllIndustries = async (req, res) => {
-  console.log('GET /api/v1/companies/industries - Request received');
   try {
     const companies = await Company.find().select('industry');
-    console.log('Companies fetched:', companies.length);
 
     if (!companies || companies.length === 0) {
       console.log('No companies found in the database');

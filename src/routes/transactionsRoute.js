@@ -7,8 +7,8 @@ import {
   deleteTransaction,
   processPayment,
   cancelTransaction
-} from '../controllers/transactionsController';
-import { apiVersion } from '../utils/constants';
+} from '../controllers/transactionsController.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

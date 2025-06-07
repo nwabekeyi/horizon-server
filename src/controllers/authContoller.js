@@ -1,10 +1,10 @@
 // authController
 import bcrypt from 'bcrypt';
-import { User } from '../models/userModel';
-import RegistrationPin from '../models/registrationPinModel';
-import { sendEmail } from '../configs/emailConfig';
-import { signJwt, verifyJwt } from '../utils/JWTconfig';
-import { prodUrl } from '../configs/envConfig';
+import { User } from '../models/userModel.js';
+import RegistrationPin from '../models/registrationPinModel.js';
+import { sendEmail } from '../configs/emailConfig.js';
+import { signJwt, verifyJwt } from '../utils/JWTconfig.js';
+import { prodUrl } from '../configs/envConfig.js';
 
 // Generate a random 4-digit PIN
 const generatePin = () => {

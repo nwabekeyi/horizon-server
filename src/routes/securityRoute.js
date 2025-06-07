@@ -6,8 +6,8 @@ import {
   requestTwoFAUpdate,
   confirmTwoFAUpdate,
   disableTwoFA,
-} from '../securities/twoFactorAuth';
-import { apiVersion } from '../utils/constants';
+} from '../securities/twoFactorAuth.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

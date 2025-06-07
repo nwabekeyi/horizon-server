@@ -1,6 +1,6 @@
 import express from 'express';
-import { loginUser, confirmPassword, registerUser, sendPasswordResetLink, resetPassword } from '../controllers/authContoller'; // Fixed typo: authContoller -> authController
-import { apiVersion } from '../utils/constants';
+import { loginUser, confirmPassword, registerUser, sendPasswordResetLink, resetPassword } from '../controllers/authContoller.js'; // Fixed typo: authContoller -> authController
+import { apiVersion } from '../utils/constants.js';
 const router = express.Router();
 
 console.log('Auth Routes - API Version:', apiVersion);

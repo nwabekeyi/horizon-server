@@ -1,4 +1,4 @@
-import RegistrationPin from '../../models/registrationPinModel';
+import RegistrationPin from '../../models/registrationPinModel.js';
 
 const registrationPinResource = {
   resource: RegistrationPin,

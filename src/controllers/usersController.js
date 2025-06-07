@@ -1,6 +1,6 @@
-import createMulter from '../configs/multerConfig';
-import RegistrationPin from '../models/registrationPinModel';
-import { User } from '../models/userModel';
+import createMulter from '../configs/multerConfig.js';
+import RegistrationPin from '../models/registrationPinModel.js';
+import { User } from '../models/userModel.js';
 import bcrypt from 'bcrypt';
 
 

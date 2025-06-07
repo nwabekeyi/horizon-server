@@ -1,5 +1,5 @@
 // src/admin/resources/brokerFeeResource.js
-import BrokerFee from '../../models/brokersFeeModel';
+import BrokerFee from '../../models/brokersFeeModel.js';
 
 export const brokerFeeResource = {
   resource: BrokerFee,

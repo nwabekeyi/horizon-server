@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-import { freeCurrencyApiKey } from '../configs/envConfig';
-import createMulter from '../configs/multerConfig';
-import Transaction from '../models/transactionModel';
-import {User} from  '../models/userModel'
+import { freeCurrencyApiKey } from '../configs/envConfig.js';
+import createMulter from '../configs/multerConfig.js';
+import Transaction from '../models/transactionModel.js';
+import {User} from  '../models/userModel.js'
 
 /**
  * Create a new transaction

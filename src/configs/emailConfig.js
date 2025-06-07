@@ -7,14 +7,17 @@ import { emailHost, emailPass, emailUser, emailPort } from './envConfig.js';
 // Create transporter with explicit SSL settings
 const transporter = nodemailer.createTransport({
   host: emailHost,
-  port: emailPort, // 465
-  secure: true,    // Use implicit TLS for port 465
+  port: 465,
+  secure: true,
   auth: {
-    user: emailUser, // '_mainaccount@247activetrading.com'
-    pass: emailPass, // Your cPanel password
+    user: emailUser,
+    pass: emailPass,
   },
-  debug: true,     // Enable debug output
-  logger: true,    // Log to console
+  tls: {
+    rejectUnauthorized: false,
+  },
+  debug: true,
+  logger: true,
 });
 
 // Verify configuration on startup

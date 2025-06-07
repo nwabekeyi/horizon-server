@@ -1,5 +1,5 @@
-import PaymentAccount from '../../models/paymentAccount';
-import { Components } from '../components';
+import PaymentAccount from '../../models/paymentAccount.js';
+import { Components } from '../components.js';
 
 // Before hook: Log action
 const beforeHook = async (request, context) => {
@@ -41,25 +41,57 @@ export const paymentAccountResource = {
         availableValues: [
           { value: 'usd', label: 'USD (Fiat)' },
           { value: 'usdt', label: 'USDT (Crypto)' },
+          { value: 'btc', label: 'BTC (Crypto)' },
+          { value: 'eth', label: 'ETH (Crypto)' },
         ],
       },
       bankName: {
-        isVisible: { list: true, show: ({ record }) => record?.params?.currency === 'usd', edit: false, filter: false },
+        isVisible: {
+          list: true,
+          show: ({ record }) => record?.params?.currency === 'usd',
+          edit: false,
+          filter: false,
+        },
       },
       accountNumber: {
-        isVisible: { list: false, show: ({ record }) => record?.params?.currency === 'usd', edit: false, filter: false },
+        isVisible: {
+          list: false,
+          show: ({ record }) => record?.params?.currency === 'usd',
+          edit: false,
+          filter: false,
+        },
       },
       accountName: {
-        isVisible: { list: false, show: ({ record }) => record?.params?.currency === 'usd', edit: false, filter: false },
+        isVisible: {
+          list: false,
+          show: ({ record }) => record?.params?.currency === 'usd',
+          edit: false,
+          filter: false,
+        },
       },
       bankSwiftCode: {
-        isVisible: { list: false, show: ({ record }) => record?.params?.currency === 'usd', edit: false, filter: false },
+        isVisible: {
+          list: false,
+          show: ({ record }) => record?.params?.currency === 'usd',
+          edit: false,
+          filter: false,
+        },
       },
       walletAddress: {
-        isVisible: { list: true, show: ({ record }) => record?.params?.currency === 'usdt', edit: false, filter: false },
+        isVisible: {
+          list: true,
+          show: ({ record }) => ['usdt', 'btc', 'eth'].includes(record?.params?.currency),
+          edit: false,
+          filter: false,
+        },
       },
       network: {
-        isVisible: { list: false, show: ({ record }) => record?.params?.currency === 'usdt', edit: false, filter: false },
+        isVisible: {
+          list: false,
+          show: ({ record }) => ['usdt', 'btc', 'eth'].includes(record?.params?.currency),
+          edit: false,
+          filter: false,
+        },
       },
       createdAt: { isVisible: { list: true, show: true, edit: false, filter: true } },
       updatedAt: { isVisible: { list: false, show: true, edit: false, filter: true } },

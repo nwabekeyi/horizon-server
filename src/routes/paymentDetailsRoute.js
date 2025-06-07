@@ -3,8 +3,8 @@ import {
   addPaymentDetail,
   deletePaymentDetail,
   updatePaymentDetail,
-} from '../controllers/paymentDetials';
-import { apiVersion } from '../utils/constants';
+} from '../controllers/paymentDetials.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 
