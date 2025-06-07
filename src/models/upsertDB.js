@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { dbUrl } from '../configs/envConfig.js'; // Adjust path
-import { User } from './userModel.js'; // Adjust path
+import bcrypt from 'bcrypt';
+import { dbUrl } from '../configs/envConfig.js'; // Adjust if path is different
+import { Admin } from './userModel.js'; // Adjust if path is different
 
 const MONGO_URI = dbUrl;
 
-// Connect to MongoDB
 const connectDB = async () => {
   try {
     await mongoose.connect(MONGO_URI, {
@@ -18,7 +18,6 @@ const connectDB = async () => {
   }
 };
 
-// Disconnect from MongoDB
 const disconnectDB = async () => {
   try {
     await mongoose.disconnect();
@@ -28,61 +27,44 @@ const disconnectDB = async () => {
   }
 };
 
-// Migration script to add recoveryEmail, clean up paymentDetails, and set empty twoFA.token
-const migrateUserRecoveryEmail = async () => {
+const createInitialAdmin = async () => {
   await connectDB();
 
-  console.log('Starting migration to add recoveryEmail, clean paymentDetails, and init twoFA.token...');
-
   try {
-    const users = await User.find({});
+    const existingAdmin = await Admin.findOne({ email: 'auroraroydon@gmail.com' });
+    if (existingAdmin) {
+      console.log('⚠️ Admin already exists with this email. Skipping creation.');
+    } else {
+      const hashedPassword = await bcrypt.hash('247activetrading', 10);
 
-    let updatedCount = 0;
+      const admin = new Admin({
+        firstName: 'Aurora',
+        lastName: 'Roydon',
+        email: 'auroraroydon@gmail.com',
+        password: hashedPassword,
+        role: 'admin',
+        status: 'verified',
+        permissions: {
+          canManageUsers: true,
+          canManageKYC: true,
+          canViewTransactions: true,
+          canManageWallets: true,
+          canSendNotifications: true,
+        },
+      });
 
-    for (const user of users) {
-      let modified = false;
-
-      // Add recoveryEmail if missing
-      if (user.recoveryEmail === undefined) {
-        user.recoveryEmail = null;
-        modified = true;
-      }
-
-      // Clean up paymentDetails
-      if (user.paymentDetails?.length) {
-        const validPaymentDetails = user.paymentDetails.filter((pd) => pd.type && pd.currency);
-        if (validPaymentDetails.length !== user.paymentDetails.length) {
-          user.paymentDetails = validPaymentDetails;
-          modified = true;
-        }
-      }
-
-      // Ensure twoFA object and token
-      if (!user.twoFA) {
-        user.twoFA = { enabled: false, secret: undefined, token: '' };
-        modified = true;
-      } else if (user.twoFA.token === undefined) {
-        user.twoFA.token = '';
-        modified = true;
-      }
-
-      if (modified) {
-        await user.save();
-        updatedCount++;
-      }
+      await admin.save();
+      console.log('✅ Admin created successfully');
     }
-
-    console.log(`✅ Migration complete: ${updatedCount} user documents updated.`);
   } catch (error) {
-    console.error('❌ Error during migration:', error);
+    console.error('❌ Error creating admin:', error);
     process.exit(1);
   }
 
   await disconnectDB();
 };
 
-// Run the migration
-migrateUserRecoveryEmail().catch((error) => {
-  console.error('❌ Migration failed:', error);
+createInitialAdmin().catch((err) => {
+  console.error('❌ Migration failed:', err);
   process.exit(1);
 });

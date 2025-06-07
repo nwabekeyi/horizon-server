@@ -1,6 +1,6 @@
 import express from 'express';
-import { submitKYC, updateKYCStatus } from '../controllers/verificationController'; // Adjust path to your actual controller
-import { apiVersion } from '../utils/constants';
+import { submitKYC, updateKYCStatus } from '../controllers/verificationController.js'; // Adjust path to your actual controller
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

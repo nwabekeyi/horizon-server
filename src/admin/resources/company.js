@@ -1,4 +1,4 @@
-import Company from '../../models/companyModel';
+import Company from '../../models/companyModel.js';
 
 const companyResource = {
   resource: Company,

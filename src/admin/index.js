@@ -2,8 +2,8 @@ import path from 'path';
 import express from 'express';
 import session from 'express-session';
 import bcrypt from 'bcrypt';
-import { adminEmail, adminPassword, adminCookie } from '../configs/envConfig';
-import { Admin } from '../models/userModel';
+import { adminEmail, adminPassword, adminCookie } from '../configs/envConfig.js';
+import { Admin } from '../models/userModel.js';
 import AdminJS from 'adminjs';
 import AdminJSExpress from '@adminjs/express';
 import { Database, Resource } from '@adminjs/mongoose';
@@ -12,8 +12,10 @@ import { adminResource } from './resources/admin.js';
 import { userResource } from './resources/user.js';
 import { brokerFeeResource } from './resources/brokerFee.js';
 import { withdrawalResource } from './resources/withdrawal.js';
-import { componentLoader, Components } from './components.js'; // Updated import
+import companyResource from './resources/company.js'; // Import companyResource
 import paymentAccountResources from './resources/paymentAccount.js';
+import { componentLoader, Components } from './components.js';
+
 export { componentLoader };
 
 export default async function setupAdminJS(app) {
@@ -29,6 +31,7 @@ export default async function setupAdminJS(app) {
       { ...userResource, parent: null },
       { ...brokerFeeResource, parent: null },
       { ...withdrawalResource, parent: null },
+      { ...companyResource, parent: null }, // Add companyResource
     ];
 
     const adminJsOptions = {
@@ -37,7 +40,7 @@ export default async function setupAdminJS(app) {
       resources: topLevelResources,
       componentLoader,
       dashboard: {
-        component: Components.HomeLinkButton, // Add HomeLinkButton to dashboard
+        component: Components.HomeLinkButton,
       },
       branding: {
         companyName: '247AT',
@@ -64,7 +67,12 @@ export default async function setupAdminJS(app) {
         },
       },
       assets: {
-        scripts: ['/admin/static/logo-redirect.js'], // Include logo-redirect.js
+        scripts: [
+          '/admin/static/logo-redirect.js',
+          '/admin/static/admin/bundle.js',
+          '/admin/static/admin/entry.js',
+          '/admin/static/admin/.entry.js',
+        ],
       },
       locale: {
         language: 'en',
@@ -77,6 +85,7 @@ export default async function setupAdminJS(app) {
               BrokerFee: 'Broker Fee',
               Withdrawals: 'Withdrawals',
               PaymentAccounts: 'Payment Accounts',
+              Company: 'Companies', // Add label for Company resource
             },
             resources: {
               Transactions: {
@@ -205,6 +214,30 @@ export default async function setupAdminJS(app) {
                   invalidImageUrl: 'Invalid image URL',
                 },
               },
+              Company: {
+                // Add translations for Company resource
+                properties: {
+                  _id: 'ID',
+                  name: 'Name',
+                  description: 'Description',
+                  industry: 'Industry',
+                  location: 'Location',
+                  logoUrl: 'Logo URL',
+                  establishedYear: 'Established Year',
+                  totalFiatInvestment: 'Total Fiat Investment',
+                  totalCryptoInvestment: 'Total Crypto Investment',
+                  'subscribers.userId': 'Subscriber User',
+                  'subscribers.fiatAmount': 'Subscriber Fiat Amount',
+                  'subscribers.cryptoAmount': 'Subscriber Crypto Amount',
+                },
+                actions: {
+                  new: 'Create New Company',
+                  edit: 'Edit Company',
+                  delete: 'Delete Company',
+                  list: 'List Companies',
+                  show: 'View Company',
+                },
+              },
             },
           },
         },
@@ -297,9 +330,10 @@ export default async function setupAdminJS(app) {
           { name: 'Payment Accounts', path: '/admin/resources/PaymentAccount' },
           { name: 'Transactions', path: '/admin/resources/Transaction' },
           { name: 'Admins', path: '/admin/resources/admin' },
-          { name: 'Users', path: '/admin/resources/User' }, // Corrected path
+          { name: 'Users', path: '/admin/resources/User' },
           { name: 'Broker Fee', path: '/admin/resources/BrokerFee' },
           { name: 'Withdrawals', path: '/admin/resources/Withdrawals' },
+          { name: 'Companies', path: '/admin/resources/Company' }, // Add Companies to dashboard
         ],
       });
     });

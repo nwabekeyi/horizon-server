@@ -1,4 +1,4 @@
-import { verifyJwt } from '../utils/JWTconfig';
+import { verifyJwt } from '../utils/JWTconfig.js';
 
 const authorize = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header

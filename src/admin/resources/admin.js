@@ -1,5 +1,5 @@
 // src/admin/resources/adminResource.js
-import { Admin } from '../../models/userModel';
+import { Admin } from '../../models/userModel.js';
 
 export const adminResource = {
   resource: Admin,

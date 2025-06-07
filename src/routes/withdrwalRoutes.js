@@ -11,8 +11,8 @@ import {
   markWithdrawalAsPaid,
   getWithdrawalsByUserId,
   cancelWithdrawal
-} from '../controllers/withdrawalController';
-import { apiVersion } from '../utils/constants';
+} from '../controllers/withdrawalController.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

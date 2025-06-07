@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
         type: {
           type: String,
           enum: ['fiat', 'crypto'],
+          required: false,
         },
         currency: {
           type: String,
@@ -94,7 +95,7 @@ const userSchema = new mongoose.Schema(
     twoFA: {
       enabled: { type: Boolean, default: false },
       secret: { type: String },
-      token: { type: String, select: false }, // Newly added token field
+      token: { type: String, select: false },
     },
     referralCode: { type: String },
     referredBy: { type: String },
@@ -133,16 +134,33 @@ const userSchema = new mongoose.Schema(
 
 userSchema.path('investments').default([]);
 
+// ✅ Updated calculateROI method
 userSchema.methods.calculateROI = function (investmentId) {
   const investment = this.investments.find((inv) => inv.id === investmentId);
   if (!investment) return 0;
 
   const roiRate = 0.03;
-  const roi = investment.amountInvested * roiRate;
-  investment.roi = roi;
+  const additionalROI = investment.amountInvested * roiRate;
 
-  this.save();
-  return roi;
+  investment.roi += additionalROI;
+  this.totalROI += additionalROI;
+
+  return this.save().then(() => additionalROI);
+};
+
+// Optional: Recalculate all ROIs
+userSchema.methods.recalculateTotalROI = function () {
+  const roiRate = 0.03;
+  let total = 0;
+
+  this.investments.forEach((inv) => {
+    const additionalROI = inv.amountInvested * roiRate;
+    inv.roi += additionalROI;
+    total += additionalROI;
+  });
+
+  this.totalROI += total;
+  return this.save().then(() => total);
 };
 
 const adminSchema = new mongoose.Schema(

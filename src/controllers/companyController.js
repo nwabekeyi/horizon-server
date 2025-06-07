@@ -1,6 +1,6 @@
-import Company from '../models/companyModel';
+import Company from '../models/companyModel.js';
 import { validationResult } from 'express-validator';
-import {User} from '../models/userModel';
+import {User} from '../models/userModel.js';
 
 export const subscribeToCompany = async (req, res) => {
   const { companyId, userId, amount, currencyType } = req.body;

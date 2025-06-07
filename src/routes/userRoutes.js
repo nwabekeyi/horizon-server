@@ -1,7 +1,7 @@
 import express from 'express';
-import authorize from '../middlewares/authorizationMiddleware';
-import { createUser, addAccountDetails, updateUser, deleteUser, getUsers, getUser } from '../controllers/usersController';
-import { apiVersion } from '../utils/constants';
+import authorize from '../middlewares/authorizationMiddleware.js';
+import { createUser, addAccountDetails, updateUser, deleteUser, getUsers, getUser } from '../controllers/usersController.js';
+import { apiVersion } from '../utils/constants.js';
 const router = express.Router();
 
 console.log('User Routes - API Version:', apiVersion);

@@ -1,6 +1,6 @@
 import express from 'express';
-import { getBrokerFee, updateBrokerFee } from '../controllers/brokersFeeController';
-import { apiVersion } from '../utils/constants';
+import { getBrokerFee, updateBrokerFee } from '../controllers/brokersFeeController.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

@@ -12,22 +12,6 @@ import {
 } from '@adminjs/design-system';
 import { useCurrentAdmin, ApiClient, useNotice } from 'adminjs';
 
-// Debug imports
-console.log('Imported components:', {
-  FormGroup,
-  Label,
-  Input,
-  Button,
-  DrawerContent,
-  Icon,
-  Box,
-  Text,
-  Badge,
-  useCurrentAdmin,
-  ApiClient,
-  useNotice,
-});
-
 const PaymentAccountForm = (props) => {
   const { resource, action } = props;
   const [currentAdmin] = useCurrentAdmin();
@@ -60,17 +44,29 @@ const PaymentAccountForm = (props) => {
         { value: '', label: 'Select Currency' },
         ...(formData.type === 'fiat'
           ? [{ value: 'usd', label: 'USD (Fiat)' }]
-          : [{ value: 'usdt', label: 'USDT (Crypto)' }]),
+          : [
+              { value: 'usdt', label: 'USDT (Crypto)' },
+              { value: 'btc', label: 'BTC (Crypto)' },
+              { value: 'eth', label: 'ETH (Crypto)' },
+            ]),
       ]
     : [{ value: '', label: 'Select Currency' }];
 
-  // Network options for USDT
-  const networkOptions = formData.currency === 'usdt'
+  // Network options based on currency
+  const networkOptions = formData.currency
     ? [
         { value: '', label: 'Select Network' },
-        { value: 'erc20', label: 'ERC20' },
-        { value: 'trc20', label: 'TRC20' },
-        { value: 'bep20', label: 'BEP20' },
+        ...(formData.currency === 'usdt'
+          ? [
+              { value: 'erc20', label: 'ERC20' },
+              { value: 'trc20', label: 'TRC20' },
+              { value: 'bep20', label: 'BEP20' },
+            ]
+          : formData.currency === 'btc'
+          ? [{ value: 'btc', label: 'BTC Mainnet' }]
+          : formData.currency === 'eth'
+          ? [{ value: 'erc20', label: 'ERC20 (Ethereum)' }]
+          : []),
       ]
     : [{ value: '', label: 'Select Network' }];
 
@@ -80,9 +76,15 @@ const PaymentAccountForm = (props) => {
     console.log('typeOptions:', typeOptions);
     console.log('currencyOptions:', currencyOptions);
     console.log('networkOptions:', networkOptions);
-    console.log('Selected type:', formData.type ? typeOptions.find(opt => opt.value === formData.type)?.label : '');
-    console.log('Selected currency:', formData.currency ? currencyOptions.find(opt => opt.value === formData.currency)?.label : '');
-    console.log('Selected network:', formData.network ? networkOptions.find(opt => opt.value === formData.network)?.label : '');
+    console.log('Selected type:', formData.type ? typeOptions.find((opt) => opt.value === formData.type)?.label : '');
+    console.log(
+      'Selected currency:',
+      formData.currency ? currencyOptions.find((opt) => opt.value === formData.currency)?.label : ''
+    );
+    console.log(
+      'Selected network:',
+      formData.network ? networkOptions.find((opt) => opt.value === formData.network)?.label : ''
+    );
   }, [formData]);
 
   // Handle input changes
@@ -134,9 +136,22 @@ const PaymentAccountForm = (props) => {
       }
     });
 
+    // Validate network for crypto currencies
+    if (formData.type === 'crypto' && formData.currency && formData.network) {
+      if (formData.currency === 'usdt' && !['erc20', 'trc20', 'bep20'].includes(formData.network)) {
+        validationErrors.network = 'Network must be one of: ERC20, TRC20, BEP20 for USDT.';
+      }
+      if (formData.currency === 'btc' && formData.network !== 'btc') {
+        validationErrors.network = 'Network must be BTC Mainnet for BTC.';
+      }
+      if (formData.currency === 'eth' && formData.network !== 'erc20') {
+        validationErrors.network = 'Network must be ERC20 for ETH.';
+      }
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       console.log('Validation errors:', validationErrors);
-      setErrors({ ...validationErrors, form: 'Please fill all required fields.' });
+      setErrors({ ...validationErrors, form: 'Please fill all required fields correctly.' });
       return;
     }
 
@@ -310,7 +325,7 @@ const PaymentAccountForm = (props) => {
             </Text>
           )}
           <Text fontSize="14px" color="#718096" marginTop="8px">
-            Selected: {formData.type ? typeOptions.find(opt => opt.value === formData.type)?.label : 'None'}
+            Selected: {formData.type ? typeOptions.find((opt) => opt.value === formData.type)?.label : 'None'}
           </Text>
         </FormGroup>
 
@@ -349,7 +364,7 @@ const PaymentAccountForm = (props) => {
               </Text>
             )}
             <Text fontSize="14px" color="#718096" marginTop="8px">
-              Selected: {formData.currency ? currencyOptions.find(opt => opt.value === formData.currency)?.label : 'None'}
+              Selected: {formData.currency ? currencyOptions.find((opt) => opt.value === formData.currency)?.label : 'None'}
             </Text>
           </FormGroup>
         )}
@@ -530,7 +545,7 @@ const PaymentAccountForm = (props) => {
                 </Text>
               )}
               <Text fontSize="14px" color="#718096" marginTop="8px">
-                Selected: {formData.network ? networkOptions.find(opt => opt.value === formData.network)?.label : 'None'}
+                Selected: {formData.network ? networkOptions.find((opt) => opt.value === formData.network)?.label : 'None'}
               </Text>
             </FormGroup>
           </Box>

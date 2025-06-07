@@ -8,8 +8,8 @@ import {
   deletePaymentAccount,
   createFiatAccount,
   createCryptoAccount,
-} from '../controllers/paymentAccountController';
-import { apiVersion } from '../utils/constants';
+} from '../controllers/paymentAccountController.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

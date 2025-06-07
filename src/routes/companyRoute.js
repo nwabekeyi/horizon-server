@@ -9,8 +9,8 @@ import {
   subscribeToCompany,
   getCompaniesByIndustry,
   getAllIndustries
-} from '../controllers/companyController';
-import { apiVersion } from '../utils/constants';
+} from '../controllers/companyController.js';
+import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
 

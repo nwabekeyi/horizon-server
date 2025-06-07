@@ -1,9 +1,9 @@
 import app from './src/app.js'; // Import the Express app
 import http from 'http';
-import { port } from './src/configs/envConfig';
+import { port } from './src/configs/envConfig.js';
 
 // Create and start the server
 const server = http.createServer(app);
-server.listen(port, () => {
-  console.log(`Server running securely on http://localhost:${port}`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${port}`);
 });

@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
-import { User } from '../models/userModel';
-import { sendEmail } from '../configs/emailConfig';
+import { User } from '../models/userModel.js';
+import { sendEmail } from '../configs/emailConfig.js';
 import jwt from 'jsonwebtoken';
-import { prodUrl, nodeEnv } from '../configs/envConfig';
+import { prodUrl, nodeEnv } from '../configs/envConfig.js';
 
 // Setup 2FA
 export const setupTwoFA = async (req, res) => {

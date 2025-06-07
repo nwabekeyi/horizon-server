@@ -1,6 +1,6 @@
-import Transaction from '../../models/transactionModel';
+import Transaction from '../../models/transactionModel.js';
 import { Components } from '../components.js';
-import { approveTransaction, declineTransaction, deleteTransaction } from '../../controllers/transactionsController';
+import { approveTransaction, declineTransaction, deleteTransaction } from '../../controllers/transactionsController.js';
 
 // Before hook: Validate transaction and log action start
 const beforeHook = async (request, context) => {

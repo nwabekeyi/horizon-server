@@ -1,4 +1,4 @@
-import AccountDetails from '../../models/accountDetails';
+import AccountDetails from '../../models/accountDetails.js';
 
 const accountDetailsResource = {
   resource: AccountDetails,

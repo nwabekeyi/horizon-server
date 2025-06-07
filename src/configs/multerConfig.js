@@ -1,7 +1,7 @@
 // multerConfig
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import cloudinary from './cloudinaryConfig';
+import cloudinary from './cloudinaryConfig.js';
 import crypto from 'crypto';
 
 /**

@@ -12,19 +12,8 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './configs/swaggerConfig.js';
 import limiter from './middlewares/rateLimiter.js';
 import connectDB from './configs/DBconns.js';
-import userRoutes from './routes/userRoutes.js';
-import authController from './routes/authRoute.js';
-import verification from './routes/verification.js';
-import transaction from './routes/transactionsRoute.js';
-import company from './routes/companyRoute.js';
-import security from './routes/securityRoute.js';
-import setupAdminJS from './admin';
 import session from 'express-session';
-import paymentDetail from './routes/paymentDetailsRoute.js';
-import withdrawal from './routes/withdrwalRoutes.js';
-import brokersFee from './routes/brokerFeeRoute.js';
-import paymentAccount from './routes/paymentAccountRoute.js'
-import recoveryEmail from './routes/recoveryEmailRoute.js'
+import { prodUrl } from './configs/envConfig.js';
 
 import allowedOriginAndMethodMiddleware from './middlewares/allowedOriginAndMethodMiddleware.js';
 import errorMiddleware from './middlewares/errorMiddleware.js';
@@ -65,9 +54,8 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          "'sha256-QEvPYBVC4/elBmqZMNgsmK/t4fbYlYlKFHMNgtbQhug='",
-          "'sha256-s3awwLVKIlkpRfkaaj52BR2uN8hCzlzb6MchVuAUdaM='",
-          "'sha256-aX5nyihpLRVEXOfytKLTyKNbLUXABeXuSnb8+Y6MbxE='",
+          "'unsafe-inline'", // For React dev builds; replace with hashes in production
+          "https://unpkg.com",
         ],
         styleSrc: [
           "'self'",
@@ -75,11 +63,12 @@ app.use(
           "https://fonts.googleapis.com",
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com"],
         connectSrc: [
           "'self'",
-          "https://horizon-amber-xi.vercel.app",
+          prodUrl,
           "http://localhost:3000",
+          "http://localhost:5000",
         ],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -104,42 +93,119 @@ logStream.on('error', (err) => console.error('Failed to write to access.log:', e
 app.use(morgan('combined', { stream: logStream }));
 app.use(morgan('dev'));
 
+// Serve static files from public/home and public/dist
+app.use(express.static(path.join(__dirname, '../public', 'home')));
+app.use(express.static(path.join(__dirname, '../public', 'dist')));
+
 // Swagger Setup
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// App Initialization
+// Main app initialization
 async function initializeApp() {
   try {
     await connectDB();
     console.log('MongoDB connection established');
 
-    const { adminJs, adminRouter } = await setupAdminJS(app);
-    app.use(adminJs.options.rootPath, adminRouter);
-    console.log(`AdminJS successfully mounted at ${adminJs.options.rootPath}`);
-
+    // Define root route to serve public/home/index.html
     app.get('/', (req, res) => {
-      res.send('Welcome to The Horizon - Your journey starts here!');
+      const indexPath = path.join(__dirname, 'public', 'home', 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving home/index.html:', err);
+          res.status(500).send('Internal Server Error: Unable to load the homepage');
+        }
+      });
     });
 
-    // API routes
-    app.use(userRoutes);
-    app.use(authController);
-    app.use(verification);
-    app.use(transaction);
-    app.use(company);
-    app.use(security);
-    app.use(paymentDetail);
-    app.use(withdrawal);
-    app.use(brokersFee);
-    app.use(paymentAccount);
-    app.use(recoveryEmail);
+    // Routes for authentication to serve public/dist/index.html
+    app.get('/authentication/sign-in', (req, res) => {
+      const indexPath = path.join(__dirname, '../public', 'dist', 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving dist/index.html for sign-in:', err);
+          res.status(500).send('Internal Server Error: Unable to load the application');
+        }
+      });
+    });
 
+    app.get('/authentication/sign-up', (req, res) => {
+      const indexPath = path.join(__dirname, '../public', 'dist', 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving dist/index.html for sign-up:', err);
+          res.status(500).send('Internal Server Error: Unable to load the application');
+        }
+      });
+    });
+
+    // Lazy import API routes and mount immediately
+    const [
+      userRoutes,
+      authController,
+      verification,
+      transaction,
+      company,
+      security,
+      paymentDetail,
+      withdrawal,
+      brokersFee,
+      paymentAccount,
+      recoveryEmail,
+    ] = await Promise.all([
+      import('./routes/userRoutes.js'),
+      import('./routes/authRoute.js'),
+      import('./routes/verification.js'),
+      import('./routes/transactionsRoute.js'),
+      import('./routes/companyRoute.js'),
+      import('./routes/securityRoute.js'),
+      import('./routes/paymentDetailsRoute.js'),
+      import('./routes/withdrwalRoutes.js'),
+      import('./routes/brokerFeeRoute.js'),
+      import('./routes/paymentAccountRoute.js'),
+      import('./routes/recoveryEmailRoute.js'),
+    ]);
+
+    app.use(userRoutes.default);
+    app.use(authController.default);
+    app.use(verification.default);
+    app.use(transaction.default);
+    app.use(company.default);
+    app.use(security.default);
+    app.use(paymentDetail.default);
+    app.use(withdrawal.default);
+    app.use(brokersFee.default);
+    app.use(paymentAccount.default);
+    app.use(recoveryEmail.default);
+
+    // Catch-all route for React app (SPA) to handle other client-side routes
+    app.get('/', (req, res) => {
+      const indexPath = path.join(__dirname, '../public', 'home', 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving dist/index.html:', err);
+          res.status(500).send('Internal Server Error: Unable to load the application');
+        }
+      });
+    });
+
+    // Error handler middleware
     app.use(errorMiddleware);
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`AdminJS available at http://localhost:${PORT}${adminJs.options.rootPath}`);
+
+      // Delay AdminJS setup by 1 minute (60000 ms)
+      setTimeout(async () => {
+        try {
+          const { default: setupAdminJS } = await import('./admin/index.js');
+          const { adminJs, adminRouter } = await setupAdminJS(app);
+          app.use(adminJs.options.rootPath, adminRouter);
+          console.log(`AdminJS successfully mounted at ${adminJs.options.rootPath}`);
+        } catch (adminErr) {
+          console.error('Failed to initialize AdminJS after delay:', adminErr);
+        }
+      }, 60000); // 60 seconds
     });
   } catch (err) {
     console.error('Failed to initialize app:', err);
@@ -149,5 +215,4 @@ async function initializeApp() {
 
 initializeApp();
 
-// Optional for testing import elsewhere
 export default app;

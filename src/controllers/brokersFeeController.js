@@ -1,4 +1,4 @@
-import BrokerFee from '../models/brokersFeeModel';
+import BrokerFee from '../models/brokersFeeModel.js';
 
 export const updateBrokerFee = async (req, res) => {
   try {

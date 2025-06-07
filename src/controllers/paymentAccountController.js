@@ -1,4 +1,4 @@
-import PaymentAccountModel from '../models/paymentAccount';
+import PaymentAccountModel from '../models/paymentAccount.js';
 
 // Timeout utility
 const withTimeout = (promise, ms) => {
@@ -135,14 +135,20 @@ export const createFiatAccount = async (req, res) => {
 export const createCryptoAccount = async (req, res) => {
   console.log('createCryptoAccount payload:', req.body);
   try {
-    const { currency, walletAddress, network } = req.body;
+    const { currency, walletAddress, network, userId = null } = req.body;
 
     if (!currency) {
       return res.status(400).json({ success: false, message: 'Currency is required.' });
     }
-    if (currency !== 'usdt') {
-      return res.status(400).json({ success: false, message: 'Currency must be USDT for crypto account.' });
+
+    const supportedCrypto = ['usdt', 'btc', 'eth'];
+    if (!supportedCrypto.includes(currency)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid currency for crypto account. Must be one of: usdt, btc, eth.',
+      });
     }
+
     if (!walletAddress || !network) {
       return res.status(400).json({
         success: false,
@@ -154,12 +160,27 @@ export const createCryptoAccount = async (req, res) => {
       });
     }
 
+    // Validate network per currency
+    const validNetworks = {
+      usdt: ['erc20', 'trc20', 'bep20'],
+      btc: ['btc'],
+      eth: ['erc20'],
+    };
+
+    if (!validNetworks[currency].includes(network)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid network for ${currency}. Allowed: ${validNetworks[currency].join(', ')}`,
+      });
+    }
+
     const newAccount = new PaymentAccountModel({
-      userId: null, // Explicitly set to null as per requirements
+      userId,
       currency,
       walletAddress,
       network,
     });
+
     const savedAccount = await withTimeout(newAccount.save(), 5000);
 
     res.status(201).json({
@@ -169,6 +190,14 @@ export const createCryptoAccount = async (req, res) => {
     });
   } catch (error) {
     console.error('createCryptoAccount error:', error.message, error.stack);
+
+    if (error.code === 11000 && error.keyPattern?.userId && error.keyPattern?.currency) {
+      return res.status(400).json({
+        success: false,
+        message: `A ${req.body.currency?.toUpperCase()} account already exists for this user.`,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to create crypto account.',

@@ -1,6 +1,6 @@
 // swaggerConfig
 import swaggerJSDoc from 'swagger-jsdoc';
-import { port, nodeEnv, prodUrl } from './envConfig';
+import { port, nodeEnv, prodUrl } from './envConfig.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
