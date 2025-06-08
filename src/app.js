@@ -205,7 +205,7 @@ async function initializeApp() {
         } catch (adminErr) {
           console.error('Failed to initialize AdminJS after delay:', adminErr);
         }
-      }, 60000); // 60 seconds
+      }, 5000); // 60 seconds
     });
   } catch (err) {
     console.error('Failed to initialize app:', err);

@@ -1,4 +1,4 @@
-import Industry from "../../models/industries";
+import Industry from "../../models/industries.js";
 
 const industryResource = {
   resource: Industry,

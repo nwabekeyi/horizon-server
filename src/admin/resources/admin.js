@@ -1,5 +1,7 @@
-// src/admin/resources/adminResource.js
-import { Admin } from '../../models/userModel.js';
+import bcrypt from 'bcrypt'
+import { Admin } from '../../models/userModel.js'
+
+const SALT_ROUNDS = 10
 
 export const adminResource = {
   resource: Admin,
@@ -51,25 +53,32 @@ export const adminResource = {
     },
     actions: {
       new: {
-        isAccessible: ({ currentAdmin }) =>
-          currentAdmin?.role === 'superadmin',
+        before: async (request) => {
+          if (request.payload?.password) {
+            const hashed = await bcrypt.hash(request.payload.password, SALT_ROUNDS)
+            request.payload = {
+              ...request.payload,
+              password: hashed,
+            }
+          }
+          return request
+        },
       },
       edit: {
-        isAccessible: ({ currentAdmin }) =>
-          currentAdmin?.role === 'superadmin',
+        before: async (request) => {
+          if (request.payload?.password) {
+            const hashed = await bcrypt.hash(request.payload.password, SALT_ROUNDS)
+            request.payload = {
+              ...request.payload,
+              password: hashed,
+            }
+          }
+          return request
+        },
       },
-      delete: {
-        isAccessible: ({ currentAdmin }) =>
-          currentAdmin?.role === 'superadmin',
-      },
-      show: {
-        isAccessible: ({ currentAdmin }) =>
-          ['admin', 'superadmin'].includes(currentAdmin?.role),
-      },
-      list: {
-        isAccessible: ({ currentAdmin }) =>
-          ['admin', 'superadmin'].includes(currentAdmin?.role),
-      },
+      delete: {},
+      show: {},
+      list: {},
     },
   },
-};
+}
