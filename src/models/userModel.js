@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+
 
 const userSchema = new mongoose.Schema(
   {
@@ -163,6 +165,7 @@ userSchema.methods.recalculateTotalROI = function () {
   return this.save().then(() => total);
 };
 
+
 const adminSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true, trim: true },
@@ -207,6 +210,20 @@ const adminSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Encrypt password before saving
+adminSchema.pre('save', async function (next) {
+  if (this.isModified('password')) {
+    try {
+      console.log('Encrypting password for:', this.email); // Debug
+      this.password = await bcrypt.hash(this.password, 10);
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
+
 
 export const User = mongoose.model('User', userSchema);
 export const Admin = mongoose.model('Admin', adminSchema);
