@@ -213,6 +213,24 @@ async function initializeApp() {
   }
 }
 
+
+//clear log file 
+function trimAccessLog() {
+  const logPath = path.join(__dirname, 'access.log');
+
+  fs.readFile(logPath, 'utf8', (err, data) => {
+    if (err) return console.error('Error reading access.log:', err);
+
+    const lines = data.trim().split('\n');
+    const last20 = lines.slice(-20).join('\n') + '\n';
+
+    fs.writeFile(logPath, last20, (err) => {
+      if (err) console.error('Error writing trimmed access.log:', err);
+    });
+  });
+}
+setInterval(trimAccessLog, 24 * 60 * 60 * 1000); // every 24 hours
+
 initializeApp();
 
 export default app;
