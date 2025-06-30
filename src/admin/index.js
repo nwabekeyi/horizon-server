@@ -18,6 +18,7 @@ import industryResource from './resources/industries.js';
 import { componentLoader, Components } from './components.js';
 import cors from 'cors';
 export { componentLoader };
+import { bundle } from '@adminjs/bundler';
 
 export default async function setupAdminJS(app) {
   try {
@@ -281,7 +282,18 @@ export default async function setupAdminJS(app) {
     if (process.env.NODE_ENV !== 'production') {
       console.log('Starting AdminJS watch for frontend bundling...');
       await adminJs.watch({ verbose: true });
-    }
+    };
+
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Bundling AdminJS components for production...');
+      await bundle({
+        config: adminJs.options,
+        componentLoader,
+      });
+    } else {
+      console.log('Starting AdminJS watch for frontend bundling...');
+      await adminJs.watch({ verbose: true });
+    };
 
     const authenticate = async (email, password) => {
       console.log('Authenticating email:', email);
