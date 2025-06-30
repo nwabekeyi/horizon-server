@@ -101,3 +101,5 @@
 127.0.0.1 - - [30/Jun/2025:10:57:24 +0000] "GET /admin/resources/PaymentAccount/records/681dec5a204106f5edfaa040/show HTTP/1.1" 302 41 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 127.0.0.1 - - [30/Jun/2025:10:57:24 +0000] "GET /admin/login HTTP/1.1" 200 2559 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 127.0.0.1 - - [30/Jun/2025:10:57:24 +0000] "GET /assets/247trading.png HTTP/1.1" 304 - "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+127.0.0.1 - - [30/Jun/2025:11:57:14 +0000] "GET /admin/login HTTP/1.1" 304 - "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+127.0.0.1 - - [30/Jun/2025:11:57:14 +0000] "GET /assets/247trading.png HTTP/1.1" 304 - "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"

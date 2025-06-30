@@ -19,6 +19,7 @@ import { componentLoader, Components } from './components.js';
 import cors from 'cors';
 export { componentLoader };
 import { bundle } from '@adminjs/bundler';
+import fs from 'fs';
 
 export default async function setupAdminJS(app) {
   try {
@@ -279,9 +280,25 @@ export default async function setupAdminJS(app) {
     const adminJs = new AdminJS(adminJsOptions);
     console.log('AdminJS instance created');
 
+    if (process.env.NODE_ENV !== 'production') {
       console.log('Starting AdminJS watch for frontend bundling...');
       await adminJs.watch({ verbose: true });
+    };
 
+    const rootDir = path.resolve(path.dirname(import.meta.url).replace('file://', ''), '../../');
+    const bundlePath = path.join(rootDir, '.adminjs/bundle.js');
+    const entryPath = path.join(rootDir, '.adminjs/entry.js');
+
+    if (process.env.NODE_ENV === 'production') {
+      if (!fs.existsSync(bundlePath)) {
+        await bundle({
+          customComponentsInitializationFilePath: entryPath,
+          destinationDir: path.dirname(bundlePath),
+        });
+      }
+    } else {
+      await adminJs.watch({ verbose: true });
+    }
 
     const authenticate = async (email, password) => {
       console.log('Authenticating email:', email);
