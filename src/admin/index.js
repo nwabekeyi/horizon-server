@@ -16,12 +16,17 @@ import companyResource from './resources/company.js';
 import paymentAccountResource from './resources/paymentAccount.js';
 import industryResource from './resources/industries.js';
 import { componentLoader, Components } from './components.js';
-
+import cors from 'cors';
 export { componentLoader };
 
 export default async function setupAdminJS(app) {
   try {
     console.log('Starting AdminJS setup...');
+
+    app.use('/admin', cors({
+      origin: ['https://api.247activetrading.com'],
+      credentials: true,
+    }));
 
     // Add body-parsing middleware for POST requests
     app.use(express.json());
