@@ -279,21 +279,9 @@ export default async function setupAdminJS(app) {
     const adminJs = new AdminJS(adminJsOptions);
     console.log('AdminJS instance created');
 
-    if (process.env.NODE_ENV !== 'production') {
       console.log('Starting AdminJS watch for frontend bundling...');
       await adminJs.watch({ verbose: true });
-    };
 
-    if (process.env.NODE_ENV === 'production') {
-      console.log('Bundling AdminJS components for production...');
-      await bundle({
-        config: adminJs.options,
-        componentLoader,
-      });
-    } else {
-      console.log('Starting AdminJS watch for frontend bundling...');
-      await adminJs.watch({ verbose: true });
-    };
 
     const authenticate = async (email, password) => {
       console.log('Authenticating email:', email);
