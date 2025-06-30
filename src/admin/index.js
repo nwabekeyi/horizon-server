@@ -16,12 +16,19 @@ import companyResource from './resources/company.js';
 import paymentAccountResource from './resources/paymentAccount.js';
 import industryResource from './resources/industries.js';
 import { componentLoader, Components } from './components.js';
-
+import cors from 'cors';
 export { componentLoader };
+import { bundle } from '@adminjs/bundler';
+import fs from 'fs';
 
 export default async function setupAdminJS(app) {
   try {
     console.log('Starting AdminJS setup...');
+
+    app.use('/admin', cors({
+      origin: ['https://api.247activetrading.com'],
+      credentials: true,
+    }));
 
     // Add body-parsing middleware for POST requests
     app.use(express.json());
@@ -276,6 +283,21 @@ export default async function setupAdminJS(app) {
     if (process.env.NODE_ENV !== 'production') {
       console.log('Starting AdminJS watch for frontend bundling...');
       await adminJs.watch({ verbose: true });
+    };
+
+    const rootDir = path.resolve(path.dirname(import.meta.url).replace('file://', ''), '../../');
+    const bundlePath = path.join(rootDir, '.adminjs/bundle.js');
+    const entryPath = path.join(rootDir, '.adminjs/entry.js');
+
+    if (process.env.NODE_ENV === 'production') {
+      if (!fs.existsSync(bundlePath)) {
+        await bundle({
+          customComponentsInitializationFilePath: entryPath,
+          destinationDir: path.dirname(bundlePath),
+        });
+      }
+    } else {
+      await adminJs.watch({ verbose: true });
     }
 
     const authenticate = async (email, password) => {
@@ -393,19 +415,23 @@ export default async function setupAdminJS(app) {
 
     app.use((req, res, next) => {
       console.log('Incoming request:', req.url, 'Session:', req.session, 'Body:', req.body);
-      res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "font-src 'self' https://fonts.gstatic.com; " +
-        "img-src 'self' data: https://res.cloudinary.com; " +
-        "connect-src 'self' http://localhost:5000; " +
-        "frame-src 'none'; " +
-        "object-src 'none'; " +
-        "base-uri 'self'; " +
-        "form-action 'self'"
-      );
+      const connectSrc = process.env.NODE_ENV === 'production'
+      ? "'self' https://api.247activetrading.com"
+      : "'self' http://localhost:5000 https://api.247activetrading.com";
+    
+    res.setHeader(
+      'Content-Security-Policy',
+      `default-src 'self'; ` +
+      `script-src 'self' 'unsafe-inline'; ` +
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; ` +
+      `font-src 'self' https://fonts.gstatic.com; ` +
+      `img-src 'self' data: https://res.cloudinary.com; ` +
+      `connect-src ${connectSrc}; ` +
+      `frame-src 'none'; ` +
+      `object-src 'none'; ` +
+      `base-uri 'self'; ` +
+      `form-action 'self'`
+    );
       next();
     });
 
