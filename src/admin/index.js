@@ -393,19 +393,23 @@ export default async function setupAdminJS(app) {
 
     app.use((req, res, next) => {
       console.log('Incoming request:', req.url, 'Session:', req.session, 'Body:', req.body);
-      res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "font-src 'self' https://fonts.gstatic.com; " +
-        "img-src 'self' data: https://res.cloudinary.com; " +
-        "connect-src 'self' http://localhost:5000; " +
-        "frame-src 'none'; " +
-        "object-src 'none'; " +
-        "base-uri 'self'; " +
-        "form-action 'self'"
-      );
+      const connectSrc = process.env.NODE_ENV === 'production'
+      ? "'self' https://api.247activetrading.com"
+      : "'self' http://localhost:5000 https://api.247activetrading.com";
+    
+    res.setHeader(
+      'Content-Security-Policy',
+      `default-src 'self'; ` +
+      `script-src 'self' 'unsafe-inline'; ` +
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; ` +
+      `font-src 'self' https://fonts.gstatic.com; ` +
+      `img-src 'self' data: https://res.cloudinary.com; ` +
+      `connect-src ${connectSrc}; ` +
+      `frame-src 'none'; ` +
+      `object-src 'none'; ` +
+      `base-uri 'self'; ` +
+      `form-action 'self'`
+    );
       next();
     });
 
