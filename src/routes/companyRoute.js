@@ -1,3 +1,4 @@
+// src/routes/router.js
 import express from 'express';
 import { check } from 'express-validator';
 import {
@@ -8,12 +9,12 @@ import {
   deleteCompany,
   subscribeToCompany,
   getCompaniesByIndustry,
-  getAllIndustries
+  getAllIndustries,
+  getAllIndustriesForAdmin, // Import the new controller
 } from '../controllers/companyController.js';
 import { apiVersion } from '../utils/constants.js';
 
 const router = express.Router();
-
 
 const companyValidation = [
   check('name').notEmpty().withMessage('Name is required'),
@@ -62,9 +63,9 @@ const companyValidation = [
  *       500:
  *         description: Internal server error
  */
-router.post(`${apiVersion}/companies`, companyValidation, (req, res, next) => {
+router.post(`${apiVersion}/companies`, companyValidation, (req, res) => {
   console.log(`POST ${apiVersion}/companies called`);
-  createCompany(req, res, next);
+  createCompany(req, res);
 });
 
 /**
@@ -80,9 +81,9 @@ router.post(`${apiVersion}/companies`, companyValidation, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get(`${apiVersion}/companies`, (req, res, next) => {
+router.get(`${apiVersion}/companies`, (req, res) => {
   console.log(`GET ${apiVersion}/companies called`);
-  getAllCompanies(req, res, next);
+  getAllCompanies(req, res);
 });
 
 /**
@@ -107,9 +108,9 @@ router.get(`${apiVersion}/companies`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get(`${apiVersion}/companies/:id`, (req, res, next) => {
+router.get(`${apiVersion}/companies/:id`, (req, res) => {
   console.log(`GET ${apiVersion}/companies/:id called`);
-  getCompanyById(req, res, next);
+  getCompanyById(req, res);
 });
 
 /**
@@ -118,6 +119,8 @@ router.get(`${apiVersion}/companies/:id`, (req, res, next) => {
  *   put:
  *     summary: Update a company
  *     tags:
+
+
  *       - Companies
  *     parameters:
  *       - in: path
@@ -159,9 +162,9 @@ router.get(`${apiVersion}/companies/:id`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.put(`${apiVersion}/companies/:id`, companyValidation, (req, res, next) => {
+router.put(`${apiVersion}/companies/:id`, companyValidation, (req, res) => {
   console.log(`PUT ${apiVersion}/companies/:id called`);
-  updateCompany(req, res, next);
+  updateCompany(req, res);
 });
 
 /**
@@ -186,9 +189,9 @@ router.put(`${apiVersion}/companies/:id`, companyValidation, (req, res, next) =>
  *       500:
  *         description: Internal server error
  */
-router.delete(`${apiVersion}/companies/:id`, (req, res, next) => {
+router.delete(`${apiVersion}/companies/:id`, (req, res) => {
   console.log(`DELETE ${apiVersion}/companies/:id called`);
-  deleteCompany(req, res, next);
+  deleteCompany(req, res);
 });
 
 /**
@@ -226,9 +229,9 @@ router.delete(`${apiVersion}/companies/:id`, (req, res, next) => {
  *       500:
  *         description: Server error
  */
-router.post(`${apiVersion}/companies/subscribe`, (req, res, next) => {
-    console.log(`POST ${apiVersion}/companies/subscribe called`);
-    subscribeToCompany(req, res, next);
+router.post(`${apiVersion}/companies/subscribe`, (req, res) => {
+  console.log(`POST ${apiVersion}/companies/subscribe called`);
+  subscribeToCompany(req, res);
 });
 
 /**
@@ -244,9 +247,40 @@ router.post(`${apiVersion}/companies/subscribe`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get(`${apiVersion}/industries`, (req, res, next) => {
-  console.log(`GET ${apiVersion}/companies/industries called`);
-  getAllIndustries(req, res, next);
+router.get(`${apiVersion}/industries`, (req, res) => {
+  console.log(`GET ${apiVersion}/industries called`);
+  getAllIndustries(req, res);
+});
+
+/**
+ * @swagger
+ * /api/v1/admin/industries:
+ *   get:
+ *     summary: Get all industries from Industry model for AdminJS
+ *     tags:
+ *       - Admin
+ *     responses:
+ *       200:
+ *         description: List of all industries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   value:
+ *                     type: string
+ *                   label:
+ *                     type: string
+ *       404:
+ *         description: No industries found
+ *       500:
+ *         description: Internal server error
+ */
+router.get(`${apiVersion}/admin/industries`, (req, res) => {
+  console.log(`GET ${apiVersion}/admin/industries called`);
+  getAllIndustriesForAdmin(req, res);
 });
 
 /**
@@ -271,9 +305,9 @@ router.get(`${apiVersion}/industries`, (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get(`${apiVersion}/companies/industries/:industry`, (req, res, next) => {
-  console.log(`GET ${apiVersion}/companies/industry/:industy called`);
-  getCompaniesByIndustry(req, res, next);
+router.get(`${apiVersion}/companies/industries/:industry`, (req, res) => {
+  console.log(`GET ${apiVersion}/companies/industries/:industry called`);
+  getCompaniesByIndustry(req, res);
 });
 
 export default router;

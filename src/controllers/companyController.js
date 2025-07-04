@@ -1,6 +1,8 @@
+// src/controllers/companyController.js
 import Company from '../models/companyModel.js';
+import Industry from '../models/industries.js'; // Import the Industry model
 import { validationResult } from 'express-validator';
-import {User} from '../models/userModel.js';
+import { User } from '../models/userModel.js';
 
 export const subscribeToCompany = async (req, res) => {
   const { companyId, userId, amount, currencyType } = req.body;
@@ -156,7 +158,7 @@ export const getAllIndustries = async (req, res) => {
 
     const industries = new Set();
     companies.forEach((company) => {
-      if (company.industry) {
+      if (company.industry && company.industry.length > 0) {
         industries.add(company.industry);
       }
     });
@@ -179,13 +181,18 @@ export const getAllIndustries = async (req, res) => {
 };
 
 export const getCompaniesByIndustry = async (req, res) => {
+  // Helper function to escape regex special characters
+  function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
   const { industry } = req.params;
 
   try {
     const normalizedIndustry = industry.toLowerCase();
+    const escapedIndustry = escapeRegex(normalizedIndustry);
 
     const companies = await Company.find({
-      industry: { $regex: new RegExp(`^${normalizedIndustry}$`, 'i') }
+      industry: { $regex: new RegExp(`^${escapedIndustry}$`, 'i') },
     });
 
     if (!companies || companies.length === 0) {
@@ -196,5 +203,30 @@ export const getCompaniesByIndustry = async (req, res) => {
   } catch (error) {
     console.error('Get companies by industry error:', error);
     res.status(500).json({ message: 'Error retrieving companies by industry', error: error.message });
+  }
+};
+
+// Get all industries from Industry model for AdminJS
+export const getAllIndustriesForAdmin = async (req, res) => {
+  try {
+    const industries = await Industry.find().select('industry');
+    if (!industries || industries.length === 0) {
+      console.log('No industries found in the Industry collection');
+      return res.status(404).json({ message: 'No industries found' });
+    }
+
+    const formattedIndustries = industries.map((industry) => ({
+      value: industry.industry.trim().toLowerCase(),
+      label: industry.industry,
+    }));
+
+    console.log('Fetched industries for admin:', formattedIndustries);
+    res.status(200).json(formattedIndustries);
+  } catch (error) {
+    console.error('Error fetching industries for admin:', error.message, error.stack);
+    res.status(500).json({
+      message: 'Server error occurred while retrieving industries for admin',
+      error: error.message,
+    });
   }
 };
