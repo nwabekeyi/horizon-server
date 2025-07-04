@@ -21,7 +21,7 @@ const IndustrySelect = ({ property, record, onChange }) => {
     const fetchIndustries = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:5000/api/v1/admin/industries', {
+        const res = await fetch('https://api.247activetrading.com/api/v1/admin/industries', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include', // Include credentials if authentication is needed
